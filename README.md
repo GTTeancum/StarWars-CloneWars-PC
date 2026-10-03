@@ -42,8 +42,8 @@ Widescreen=1      ; 0 = original 4:3 picture with side bars
 FXAA=1
 ```
 
-Widescreen is tested at 16:9. Ultrawide (21:9 and wider) is experimental
-and incomplete. At any wide setting, an enemy in the extra side area (outside
+Widescreen is supported at 16:9. Ultrawide (21:9 and wider) is not
+supported; it runs, but use it at your own risk. At any wide setting, an enemy in the extra side area (outside
 the original 4:3 view) gets an off-screen arrow instead of a target marker.
 
 Keyboard: Enter = Start, Esc = Back, arrows = D-pad, WASD = left stick,
