@@ -336,6 +336,8 @@ static const void *gptr(uint32_t va) { return (const void *)XBOX_PTR(va); }
 
 /* ---- captured pipeline state ------------------------------------------- */
 
+static FILE *s_cap;                        /* open while a frame is being captured */
+static int s_cap_seq, s_cap_draw;
 static uint32_t s_tex[4];               /* guest D3DBaseTexture* per stage   */
 static uint32_t s_stream_vb[16], s_stream_stride[16];
 static uint32_t s_ib_base;
@@ -1200,6 +1202,15 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
         if (x < minx) minx = x;
         if (x > maxx) maxx = x;
     }
+    if (s_cap) {
+        float miny = 1e9f, maxy = -1e9f, y;
+        for (i = lo; i <= hi; i++) {
+            memcpy(&y, buf + (size_t)i * stride + 4, 4);
+            if (y < miny) miny = y;
+            if (y > maxy) maxy = y;
+        }
+        fprintf(s_cap, "       screen x %.1f..%.1f y %.1f..%.1f\n", minx, maxx, miny, maxy);
+    }
     /* Spanning the screen and plain -- untextured, or a small texture (fades
      * draw a tiny texture tinted by vertex colour; cutscene bars) -- or
      * blended over the scene (a vignette fade with a large radial texture):
@@ -1210,12 +1221,33 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
     } else {
         sx = sy = s_hs; ox = s_hx0; oy = s_hy0;
     }
-    for (i = lo; i <= hi; i++) {
-        float *p = (float *)(buf + (size_t)i * stride);
-        /* Edges map to edges: the title puts quad edges on whole pixels
-         * (0 and 640), so a plain scale keeps full-screen pieces flush. */
-        p[0] = ox + p[0] * sx;
-        p[1] = oy + p[1] * sy;
+    {
+        /* Screen wipes: full-height panels anchored to the left or right
+         * edge of the 640-wide screen that slide across it (the cutscene ->
+         * gameplay transition). Kept in the 4:3 layout they left the side
+         * bars un-wiped; their anchored edge goes to the edge of the target. */
+        float miny = 1e9f, maxy = -1e9f;
+        int wipe;
+        for (i = lo; i <= hi; i++) {
+            float y;
+            memcpy(&y, buf + (size_t)i * stride + 4, 4);
+            if (y < miny) miny = y;
+            if (y > maxy) maxy = y;
+        }
+        /* One edge only: full-screen art touches both and stays pillarboxed. */
+        wipe = sx == s_hs && ox > 0.0f && miny <= 1.0f && maxy >= 478.0f && ((minx <= 1.0f) != (maxx >= 638.0f));
+        for (i = lo; i <= hi; i++) {
+            float *p = (float *)(buf + (size_t)i * stride);
+            float gx = p[0];
+            /* Edges map to edges: the title puts quad edges on whole pixels
+             * (0 and 640), so a plain scale keeps full-screen pieces flush. */
+            p[0] = ox + p[0] * sx;
+            p[1] = oy + p[1] * sy;
+            if (wipe) {
+                if (gx <= 1.0f) p[0] = 0.0f;
+                else if (gx >= 638.0f) p[0] = (float)s_bbw;
+            }
+        }
     }
     return buf;
 }
@@ -1311,8 +1343,6 @@ static void m_set_viewport(uint32_t pvp)
 
 /* Clear(Count, pRects, Flags, Color, Z, Stencil). Xbox splits the target flag
  * per channel (0xF0); depth and stencil bits match the PC. */
-static FILE *s_cap;                        /* open while a frame is being captured */
-static int s_cap_seq, s_cap_draw;
 
 static void m_clear(const uint32_t *a)
 {
