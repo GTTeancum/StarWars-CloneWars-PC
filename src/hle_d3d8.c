@@ -1262,10 +1262,26 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
                 if (y > maxy) maxy = y;
             }
             cx = 0.5f * (minx + maxx); cy = 0.5f * (miny + maxy);
-            if ((maxx - minx > 16.0f || maxy - miny > 16.0f) || cy >= 300.0f) {
+            /* The radar (ring x 395..621, y 246..472): blips on its upper rim
+             * sit above the bottom zone and pulse below the size cut. */
+            if ((cx - 508.0f) * (cx - 508.0f) + (cy - 359.0f) * (cy - 359.0f) < 130.0f * 130.0f) {
+                ox = 2.0f * s_hx0;
+                goto anchored;
+            }
+            /* Above the bottom zone only the off-screen chevrons anchor. The
+             * aiming reticle is the same size and wanders there when the
+             * turret turns; the chevrons come through the sprite call that
+             * returns to 0x061345, the reticle through 0x061728. */
+            if (cy < 300.0f && maxy - miny > 16.0f) {
+                int k, hit = 0;
+                for (k = 0; k < 96 && !hit; k++) hit = MEM32(g_esp + 4u * (uint32_t)k) == 0x061345u;
+                if (!hit) cy = -1.0f;
+            }
+            if (cy >= 0.0f && ((maxx - minx > 16.0f || maxy - miny > 16.0f) || cy >= 300.0f)) {
                 if (cx < 200.0f && (cy >= 300.0f || maxy - miny > 16.0f)) ox = 0.0f;
                 else if (cx > 440.0f && (cy >= 300.0f || maxy - miny > 16.0f)) ox = 2.0f * s_hx0;
             }
+        anchored:;
         }
     }
     {
