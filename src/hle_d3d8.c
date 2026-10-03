@@ -136,6 +136,8 @@ static LRESULT CALLBACK hle_wndproc(HWND h, UINT m, WPARAM w, LPARAM l)
 static int   s_bbw = 640, s_bbh = 480, s_fullscreen, s_widescreen = 1, s_fxaa = 1;
 static float s_hs = 1.0f, s_hx0, s_hy0;      /* 2D: x' = s_hx0 + x * s_hs */
 static float s_k = 1.0f;                      /* full-screen 3D: clip x *= s_k */
+static uint32_t s_wide_cam;                    /* last full-screen camera widened */
+static int32_t s_wide_ext;                     /* >0 inside wide_vp_call: 640-px units each side */
 
 static void load_settings(void)
 {
@@ -1116,10 +1118,62 @@ void sub_00227960(void)
         MEMF(cam + 0x290) = MEMF(cam + 0x290) * s_k;
         sub_00227960_gen();
         MEM32(cam + 0x290) = keep;
+        /* +0x2C0 is the horizontal projection scale the game uses to put 2D
+         * on 3D points (target brackets, the reticle, the galaxy map's planet
+         * ring): x = X/Z * [+0x2C0] * 320 + 320 on the 640-wide screen. That
+         * screen is drawn in the centred 4:3 area, so it needs the 4:3 scale;
+         * the widened one pulled those pieces toward the centre by k. */
+        MEMF(cam + 0x2C0) = MEMF(cam + 0x2C0) / s_k;
+        s_wide_cam = cam;
         return;
     }
     sub_00227960_gen();
 }
+
+/* With the 4:3 scale above, points in the widened view beside the 4:3 area
+ * project past x 0..639, and the target-bracket, reticle/chevron and label
+ * passes test against the camera's integer viewport (+0x29C left, +0x2A4
+ * right): an enemy in the side area got an off-screen chevron instead of
+ * brackets. During those passes the viewport spans the widened view. */
+static void wide_vp_call(void (*gen)(void))
+{
+    /* Unverified (21:9 work stopped here): off unless CW_WIDE_MARKERS=1. */
+    static int on = -1;
+    uint32_t cam = s_wide_cam;
+    if (on < 0) on = getenv("CW_WIDE_MARKERS") && atoi(getenv("CW_WIDE_MARKERS"));
+    if (on && cam && s_k < 1.0f && MEM32(cam + 0x29C) == 0 && MEM32(cam + 0x2A4) == 639) {
+        s_wide_ext = (int32_t)(320.0f / s_k - 320.0f);
+        MEM32(cam + 0x29C) = (uint32_t)-s_wide_ext;
+        MEM32(cam + 0x2A4) = (uint32_t)(639 + s_wide_ext);
+        gen();
+        MEM32(cam + 0x29C) = 0;
+        MEM32(cam + 0x2A4) = 639;
+        s_wide_ext = 0;
+        return;
+    }
+    gen();
+}
+
+/* The camera's screen-rect method (vtable +0xE4) replaces the rect with the
+ * TV safe area, inset from 0..639 x 0..479; the bracket pass tests against
+ * that. Inside the passes above it spans the widened view too. Arg: the
+ * rect (left, top, right, bottom). */
+void sub_0024E100_gen(void);
+void sub_0024E100(void)
+{
+    uint32_t rect = MEM32(g_esp + 4);
+    sub_0024E100_gen();
+    if (s_wide_ext) {
+        MEM32(rect) = (uint32_t)((int32_t)MEM32(rect) - s_wide_ext);
+        MEM32(rect + 8) = (uint32_t)((int32_t)MEM32(rect + 8) + s_wide_ext);
+    }
+}
+void sub_0010D870_gen(void);
+void sub_0010D870(void) { wide_vp_call(sub_0010D870_gen); }   /* target brackets */
+void sub_00114700_gen(void);
+void sub_00114700(void) { wide_vp_call(sub_00114700_gen); }   /* reticle, chevrons */
+void sub_001100E0_gen(void);
+void sub_001100E0(void) { wide_vp_call(sub_001100E0_gen); }   /* labels over units */
 
 /* The title's viewport and projection are for 640x480. A full-screen viewport
  * becomes the whole render target (in 4:3 mode, the centred 4:3 area), and the horizontal extent of perspective
@@ -1248,7 +1302,10 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
          * margin to the screen edge instead of the 4:3 edge. Target markers
          * follow enemies and stay in the 4:3 mapping, which matches the
          * widened view. CW_NO_HUD_ANCHOR=1 disables. */
-        if (ox > 0.0f && s_k < 1.0f && MEM32(0x005ED8B0u) == 0 && !getenv("CW_NO_HUD_ANCHOR")) {
+        /* Pieces reaching past the 640-wide screen are placed on 3D points
+         * the widened view shows beside it (target brackets): never HUD. */
+        if (ox > 0.0f && s_k < 1.0f && minx >= 0.0f && maxx <= 640.0f &&
+            MEM32(0x005ED8B0u) == 0 && !getenv("CW_NO_HUD_ANCHOR")) {
             /* Judged by the piece's centre (the radar rotates; its bounding
              * box does not stay put). Large or tall pieces with their centre
              * in the outer quarters -- gauges, radar, the off-screen
@@ -2420,6 +2477,14 @@ void hle_ft_reset(void) { }
 void hle_ft_report(void) { }
 void sub_00227960_gen(void);
 void sub_00227960(void) { sub_00227960_gen(); }
+void sub_0010D870_gen(void);
+void sub_0010D870(void) { sub_0010D870_gen(); }
+void sub_00114700_gen(void);
+void sub_00114700(void) { sub_00114700_gen(); }
+void sub_001100E0_gen(void);
+void sub_001100E0(void) { sub_001100E0_gen(); }
+void sub_0024E100_gen(void);
+void sub_0024E100(void) { sub_0024E100_gen(); }
 void hle_frame_key(unsigned *seg, unsigned *off) { *seg = 0; *off = 0; }
 
 #endif
