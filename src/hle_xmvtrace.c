@@ -506,11 +506,33 @@ void sub_00245A50(void)
                 a, a ? MEM32(a + 4) >> 9 : 0, b, b ? MEM32(b + 4) >> 9 : 0);
     }
 }
+/* 0x00251F00 (thiscall): hands the level texture to the material at
+ * this+0x10 (slot 1) -- the reference that outlives the level. Track the
+ * object and its material too: AddRef/Release are shared by all of the
+ * engine's ref-counted objects. */
+void sub_00251F00_gen(void);
+void sub_00251F00(void)
+{
+    uint32_t self = g_ecx;
+    if (ref_on() && MEM32(self + 0x18) && MEM32(self + 0x24) == 2) {
+        uint32_t mat = MEM32(self + 0x10);
+        static int n;
+        if (!ref_tracked(self) && s_nreftrack < 16) s_reftrack[s_nreftrack++] = self;
+        if (mat && !ref_tracked(mat) && s_nreftrack < 16) s_reftrack[s_nreftrack++] = mat;
+        if (n++ < 6) {
+            fprintf(stderr, "[REF] 251F00 object %08X (refs %u, vtbl %08X) material %08X (refs %u)\n",
+                    self, MEM32(self + 4) >> 9, MEM32(self), mat, mat ? MEM32(mat + 4) >> 9 : 0);
+            ref_stack(); fputc(10, stderr);
+        }
+    }
+    sub_00251F00_gen();
+}
+
 void sub_0022C770_gen(void);
 void sub_0022C770(void)
 {
     uint32_t o = g_ecx;
-    if (ref_on() && ref_tracked(o)) {
+    if (ref_on() && (ref_tracked(o) || (o > 0x10000u && o < 0x04000000u && MEM32(o) == 0x0037ACE4u))) {
         fprintf(stderr, "[REF] AddRef %08X %u->%u from", o, MEM32(o + 4) >> 9, (MEM32(o + 4) >> 9) + 1);
         ref_stack(); fputc(10, stderr);
     }
@@ -520,7 +542,7 @@ void sub_0022C7A0_gen(void);
 void sub_0022C7A0(void)
 {
     uint32_t o = g_ecx;
-    if (ref_on() && ref_tracked(o)) {
+    if (ref_on() && (ref_tracked(o) || (o > 0x10000u && o < 0x04000000u && MEM32(o) == 0x0037ACE4u))) {
         fprintf(stderr, "[REF] Release %08X %u->%u from", o, MEM32(o + 4) >> 9, (MEM32(o + 4) >> 9) - 1);
         ref_stack(); fputc(10, stderr);
     }

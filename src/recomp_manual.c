@@ -516,6 +516,82 @@ static void cw_audio_bypass_00221D80(void)
 }
 
 /*
+ * Three entry points the disassembler never found: they sit in gaps between
+ * functions and are reached only through vtables, so every call to them was
+ * dropped ("[ICALL] Failed to resolve VA"). Hand-lifted from the bytes.
+ *
+ * 0x000A6AF0 -- this-adjusting thunk (add ecx, 4; jmp 0x000D84C0). Called
+ *   ~240 times per level; skipped, objects never got the call meant for their
+ *   base at +4 -- the leaked full-screen texture per level load traced to here
+ *   and to 0x000637E0.
+ * 0x000637E0 -- level shutdown: Release()s and clears the global render
+ *   resources (a 20-entry table at 0x3FAEC8, stride 0xA8, three refs each,
+ *   then the singles at 0x3FAE68..0x3FAEB8). Skipped, each level's set stayed
+ *   alive.
+ * 0x00120650 -- small frontend handler (two calls on the object 0x0016F910
+ *   returns, the second a tail call).
+ */
+static void rel_obj(uint32_t obj, uint32_t ret_va)
+{
+    g_ecx = obj;
+    PUSH32(g_esp, ret_va); RECOMP_ABI_CALL(0x0022C7A0u, sub_0022C7A0);
+}
+
+static void manual_sub_000A6AF0(void)
+{
+    g_ecx += 4;
+    sub_000D84C0();                 /* tail jmp: same return address */
+}
+
+static void manual_sub_000637E0(void)
+{
+    uint32_t p, i;
+    PUSH32(g_esp, g_esi);
+    PUSH32(g_esp, g_edi);
+    for (p = 0x3FAED0u; p < 0x3FBBF0u; p += 0xA8u) {
+        if (MEM32(p - 8)) rel_obj(MEM32(p - 8), 0x000637FCu);
+        MEM32(p - 8) = 0;
+        if (MEM32(p)) rel_obj(MEM32(p), 0x0006380Au);
+        MEM32(p) = 0;
+        if (MEM32(p + 4)) rel_obj(MEM32(p + 4), 0x00063818u);
+        MEM32(p + 4) = 0;
+    }
+    MEM32(0x3FAEA0u) = 0;
+    for (i = 0; i < 0xC; i += 4) {          /* original: unconditional calls */
+        if (MEM32(i + 0x3FAE94u)) rel_obj(MEM32(i + 0x3FAE94u), 0x0006383Cu);
+        MEM32(i + 0x3FAE94u) = 0;
+        if (MEM32(i + 0x3FAE7Cu)) rel_obj(MEM32(i + 0x3FAE7Cu), 0x0006384Du);
+        MEM32(i + 0x3FAE7Cu) = 0;
+    }
+    for (p = 0x3FAE68u; p < 0x3FAE74u; p += 4) {
+        if (MEM32(p)) rel_obj(MEM32(p), 0x00063867u);
+        MEM32(p) = 0;
+    }
+    {
+        static const uint32_t singles[] = { 0x3FAE90u, 0x3FAE8Cu, 0x3FAE88u, 0x3FAE78u, 0x3FAE74u,
+                                            0x3FAEACu, 0x3FAEB0u, 0x3FAEB4u, 0x3FAEB8u };
+        for (i = 0; i < sizeof singles / sizeof singles[0]; i++) {
+            if (MEM32(singles[i])) rel_obj(MEM32(singles[i]), 0x000638D4u);
+            MEM32(singles[i]) = 0;
+        }
+    }
+    POP32(g_esp, g_edi);
+    POP32(g_esp, g_esi);
+    g_esp += 4; /* ret */
+}
+
+static void manual_sub_00120650(void)
+{
+    PUSH32(g_esp, 0);
+    PUSH32(g_esp, 0x00120657u); RECOMP_ABI_CALL(0x0016F910u, sub_0016F910);
+    g_ecx = g_eax;
+    PUSH32(g_esp, 0x0012065Eu); RECOMP_ABI_CALL(0x0016F970u, sub_0016F970);   /* ret 4 pops the 0 */
+    PUSH32(g_esp, 0x00120663u); RECOMP_ABI_CALL(0x0016F910u, sub_0016F910);
+    g_ecx = g_eax;
+    sub_0016E060();                 /* tail jmp */
+}
+
+/*
  * 0x0005FE10 -- resource/event callback registered by the frontend loading
  * table. The scanner missed this entrypoint because it sits in a gap between
  * generated functions, but the title passes it as a callback and later calls
@@ -839,6 +915,9 @@ recomp_func_t recomp_lookup_manual(uint32_t xbox_va)
     if (xbox_va == 0x0026540Cu) return crt_memmove_tail_0026540C;
     if (xbox_va == 0x00265430u) return crt_memmove_tail_00265430;
     if (xbox_va == 0x002654B4u) return crt_memmove_tail_002654B4;
+    if (xbox_va == 0x000A6AF0u) return manual_sub_000A6AF0;
+    if (xbox_va == 0x000637E0u) { log_manual_gap(xbox_va); return manual_sub_000637E0; }
+    if (xbox_va == 0x00120650u) { log_manual_gap(xbox_va); return manual_sub_00120650; }
     if (xbox_va == 0x0005FE10u)
         { log_manual_gap(xbox_va); return sub_0005FE10; }
     if (xbox_va == 0x00062AA0u)
