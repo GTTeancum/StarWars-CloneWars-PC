@@ -1,0 +1,2770 @@
+diff --git a/src/apu/apu_mmio_hook.c b/src/apu/apu_mmio_hook.c
+index 2742fa2..e0902f5 100644
+--- a/src/apu/apu_mmio_hook.c
++++ b/src/apu/apu_mmio_hook.c
+@@ -35,6 +35,9 @@ static int g_apu_mmio_decode_fail = 0;
+  * x86-64 register access helpers (same as NV2A hook)
+  * ============================================================ */
+ 
++/* The decoder reads and rewrites x64 register state; a 32-bit host has no
++ * trap path (see apu_hook_handle_mmio). */
++#if defined(_WIN64)
+ static uint64_t *ctx_reg64(PCONTEXT ctx, int reg)
+ {
+     switch (reg & 0xF) {
+@@ -249,6 +252,8 @@ static bool apu_decode_and_handle(PCONTEXT ctx, uint32_t mmio_offset, int is_wri
+     return false;
+ }
+ 
++#endif /* _WIN64 */
++
+ /* ============================================================
+  * Public API (called from VEH in main.c)
+  * ============================================================ */
+@@ -257,7 +262,12 @@ bool apu_hook_handle_mmio(PCONTEXT ctx, uintptr_t fault_addr,
+                           uint32_t fault_xbox_va, int is_write)
+ {
+     uint32_t mmio_offset = fault_xbox_va - APU_MMIO_BASE;
++#if defined(_WIN64)
+     bool ok = apu_decode_and_handle(ctx, mmio_offset, is_write);
++#else
++    bool ok = false;   /* no x86 instruction decoder: leave the fault unhandled */
++    (void)ctx;
++#endif
+ 
+     /* What the title actually asks the APU for. The DSPs are stubbed here, so
+      * a title that waits on one waits forever, and the only way to work out
+diff --git a/src/kernel/kernel.h b/src/kernel/kernel.h
+index c53b3d4..4be39b0 100644
+--- a/src/kernel/kernel.h
++++ b/src/kernel/kernel.h
+@@ -947,6 +947,10 @@ NTSTATUS __stdcall xbox_ExSaveNonVolatileSetting(ULONG ValueIndex, ULONG Type, P
+ #define AV_OPTION_FLICKER_FILTER        0x0B
+ #define AV_OPTION_ZERO_MODE             0x0D
+ #define AV_OPTION_QUERY_MODE_CAPS       0x0E
++#define AV_OPTION_GUESS_FIELD           0x0F
++
++/* Advanced by the synthetic vblank; its parity is the interlaced field. */
++extern volatile unsigned long xbox_av_field_counter;
+ 
+ /* ---- AV flags (for capabilities / display mode) ---- */
+ #define AV_FLAGS_HDTV_480i      0x00000001
+diff --git a/src/kernel/kernel_bridge.c b/src/kernel/kernel_bridge.c
+index eb25c6c..f0001f5 100644
+--- a/src/kernel/kernel_bridge.c
++++ b/src/kernel/kernel_bridge.c
+@@ -29,6 +29,8 @@
+ #include "xbox_memory_layout.h"
+ #include "recomp_icall_feedback.h"
+ #include <stdio.h>
++#include <mmsystem.h>
++#pragma comment(lib, "winmm.lib")
+ /* stdlib.h is load-bearing, not tidiness. Without it C89 implicit declaration
+  * makes malloc return `int`, so bridge_spawn_thread truncated its heap pointer
+  * to 32 bits and sign-extended it into a `struct bridge_thread_start *`. Every
+@@ -49,6 +51,7 @@
+  * reads as every register being zero. */
+ extern RECOMP_TLS uint32_t g_eax, g_ecx, g_edx, g_esp;
+ extern RECOMP_TLS uint32_t g_ebx, g_esi, g_edi;
++extern RECOMP_TLS uint32_t g_ebp;
+ extern uint32_t g_xbox_code_lo, g_xbox_code_hi;
+ extern RECOMP_TLS uint32_t g_seh_ebp;
+ extern ptrdiff_t g_xbox_mem_offset;
+@@ -409,8 +412,11 @@ static void bridge_run_thread_inline(recomp_func_t fn, uint32_t ctx1,
+     g_esp += 12;
+ }
+ 
++extern void xbox_pin_guest_thread(int interrupt_level);
++
+ static DWORD WINAPI bridge_thread_main(LPVOID param)
+ {
++    xbox_pin_guest_thread(0);
+     struct bridge_thread_start *s = (struct bridge_thread_start *)param;
+     recomp_func_t fn = s->fn;
+     uint32_t ctx1 = s->ctx1, ctx2 = s->ctx2;
+@@ -594,6 +600,8 @@ static void bridge_PsCreateSystemThreadEx(void)
+ static void   bridge_write_handle(uint32_t handle_va, HANDLE h);
+ static HANDLE bridge_take_handle(uint32_t token);
+ 
++void xbox_ReleaseDirContext(HANDLE FileHandle);
++
+ static void bridge_NtClose(void)
+ {
+     uint32_t raw_handle = STACK_ARG(0);
+@@ -606,12 +614,33 @@ static void bridge_NtClose(void)
+     /* Close real handles but skip fake/synthetic ones */
+     if (raw_handle && raw_handle != 0xDEAD0001u && raw_handle != 0xBEEF0010u) {
+         HANDLE h = bridge_take_handle(raw_handle);
+-        if (h && h != INVALID_HANDLE_VALUE)
++        if (h && h != INVALID_HANDLE_VALUE) {
++            xbox_ReleaseDirContext(h);   /* the value is about to be reused */
+             CloseHandle(h);
++        }
+     }
+     g_eax = 0; /* STATUS_SUCCESS */
+ }
+ 
++
++/* RECOMP_CONTIG_TRACE_SIZE=<bytes>: print the guest stack for every contiguous
++ * allocation of that size, and every free of such a block. Leak hunting. */
++static uint32_t contig_trace_size(void)
++{
++    static long v = -1;
++    if (v < 0) { const char *e = getenv("RECOMP_CONTIG_TRACE_SIZE"); v = e ? atol(e) : 0; }
++    return (uint32_t)v;
++}
++static void contig_trace(const char *what, uint32_t va, uint32_t size)
++{
++    uint32_t k, n = 0;
++    fprintf(stderr, "  [CTRACE] %s %08X size %u stack:", what, va, size);
++    for (k = 0; k < 96 && n < 10; k++) {
++        uint32_t v = BRIDGE_MEM32(g_esp + 4 * k);
++        if (v > g_xbox_code_lo && v < g_xbox_code_hi) { fprintf(stderr, " %08X", v); n++; }
++    }
++    fputc(10, stderr); fflush(stderr);
++}
+ /* ── MmAllocateContiguousMemory (ordinal 165) ─────────────
+  * PVOID MmAllocateContiguousMemory(ULONG NumberOfBytes)
+  */
+@@ -623,7 +652,18 @@ static void bridge_MmAllocateContiguousMemory(void)
+      * entitled to assume (VA & 0x0FFFFFFF) | 0x80000000 == VA, because that
+      * is how a driver converts between the address it holds and the one it
+      * hands the hardware. See xbox_ContiguousAlloc. */
+-    uint32_t xbox_va = xbox_ContiguousAlloc(size, 4096);
++    uint32_t xbox_va;
++    { /* call site: first guest return address outside XAPI/kernel glue */
++      extern uint32_t g_contig_alloc_caller; uint32_t k2, v;
++      g_contig_alloc_caller = g_xbox_kernel_caller;
++      for (k2 = 0; k2 < 48; k2++) {
++          v = BRIDGE_MEM32(g_esp + 4 * k2);
++          if (v >= 0x11000u && v < 0x32C000u && !(v >= 0x160000u && v < 0x166000u)) {
++              if (!(v >= 0x2D0000u && v < 0x2E4000u)) { g_contig_alloc_caller = v; break; }
++          }
++      } }
++    xbox_va = xbox_ContiguousAlloc(size, 4096);
++    if (contig_trace_size() && size == contig_trace_size()) contig_trace("alloc", xbox_va, size);
+ 
+     if (KERNEL_LOG_ON_HALF()) {
+         fprintf(stderr, "  [KERNEL] MmAllocateContiguousMemory: size=%u → Xbox VA 0x%08X\n",
+@@ -721,7 +761,17 @@ static void bridge_MmAllocateContiguousMemoryEx(void)
+     }
+ 
+     if (align < 4096) align = 4096;
++    { /* call site: first guest return address outside XAPI/kernel glue */
++      extern uint32_t g_contig_alloc_caller; uint32_t k2, v;
++      g_contig_alloc_caller = g_xbox_kernel_caller;
++      for (k2 = 0; k2 < 48; k2++) {
++          v = BRIDGE_MEM32(g_esp + 4 * k2);
++          if (v >= 0x11000u && v < 0x32C000u && !(v >= 0x160000u && v < 0x166000u)) {
++              if (!(v >= 0x2D0000u && v < 0x2E4000u)) { g_contig_alloc_caller = v; break; }
++          }
++      } }
+     xbox_va = xbox_ContiguousAlloc(size, align);
++    if (contig_trace_size() && size == contig_trace_size()) contig_trace("allocEx", xbox_va, size);
+ 
+     if (KERNEL_LOG_ON_HALF()) {
+         fprintf(stderr, "  [KERNEL] MmAllocateContiguousMemoryEx: size=%u align=%u → Xbox VA 0x%08X\n",
+@@ -738,7 +788,12 @@ static void bridge_MmAllocateContiguousMemoryEx(void)
+ static void bridge_MmFreeContiguousMemory(void)
+ {
+     uint32_t addr = STACK_ARG(0);
+-    xbox_HeapFree(addr);
++    /* Contiguous blocks come from the contiguous window, not the heap; the
++     * heap free here was a silent no-op and the window leaked. */
++    if (contig_trace_size() && xbox_ContiguousBlockSize(addr) == ((contig_trace_size() + 4095u) & ~4095u))
++        contig_trace("free", addr, xbox_ContiguousBlockSize(addr));
++    if (!xbox_ContiguousFree(addr))
++        xbox_HeapFree(addr);
+     g_eax = 0;
+ }
+ 
+@@ -1601,6 +1656,16 @@ static void bridge_KeBugCheck(void)
+     fprintf(stderr, "  [KERNEL] *** KeBugCheck: code=0x%08X ***\n",
+             STACK_ARG(0));
+     fflush(stderr);
++    {
++        int k, found = 0;
++        fprintf(stderr, "  [KERNEL]     from:");
++        for (k = 0; k < 96 && found < 12; k++) {
++            uint32_t v = BRIDGE_MEM32(g_esp + 4u * (uint32_t)k);
++            if (v >= 0x00011000u && v < 0x00330000u) { fprintf(stderr, " %08X", v); found++; }
++        }
++        fprintf(stderr, "\n");
++        fflush(stderr);
++    }
+     g_eax = 0;
+ }
+ 
+@@ -1744,7 +1809,7 @@ static void bridge_HalReadSMCTrayState(void)
+     uint32_t state_ptr = STACK_ARG(0);
+     uint32_t count_ptr = STACK_ARG(1);
+ 
+-    if (state_ptr) BRIDGE_MEM32(state_ptr) = 0x10;  /* No disc */
++    if (state_ptr) BRIDGE_MEM32(state_ptr) = 0x14;  /* Tray closed with disc */
+     if (count_ptr) BRIDGE_MEM32(count_ptr) = 0;
+     g_eax = 0;
+ }
+@@ -1971,22 +2036,50 @@ static int kernel_raise_interrupt(uint32_t vector)
+ #define NV2A_PCRTC_INTR_0      0x00600100u
+ #define NV2A_PCRTC_INTR_VBLANK (1u << 0)
+ #define NV2A_VECTOR            3u
++#define NV2A_PVIDEO_BUFFER     0x00008700u
++#define NV2A_PVIDEO_STOP       0x00008704u
+ 
++static volatile LONG g_dpc_run_count;
+ static void kernel_vblank_tick(void)
+ {
+     static int enabled = -1;
+-    static long long next_ms;
++    static long long next_us, freq;
+     long long now;
++    LARGE_INTEGER qpc;
+ 
+-    if (enabled < 0)
+-        enabled = getenv("RECOMP_VBLANK") != NULL;
++    if (enabled < 0) {
++        const char *setting = getenv("RECOMP_VBLANK");
++        enabled = !setting || strcmp(setting, "0") != 0;
++    }
+     if (!enabled)
+         return;
+ 
+-    now = (long long)GetTickCount64();
+-    if (now < next_ms)
++    /* 60 Hz on the performance counter. GetTickCount64 moves in 15.6 ms
++     * steps, so "now + 16" fired every other step -- 32 Hz -- and the XMV
++     * player, which paces frames on VBlankCount, ran at half speed. The
++     * schedule accumulates, and skips ahead rather than bursting after a
++     * stall. */
++    if (!freq) {
++        LARGE_INTEGER f;
++        QueryPerformanceFrequency(&f);
++        freq = f.QuadPart;
++    }
++    QueryPerformanceCounter(&qpc);
++    now = (long long)(qpc.QuadPart * 1000000.0 / (double)freq);
++    if (now < next_us)
+         return;
+-    next_ms = now + 16;                       /* ~60 Hz */
++    next_us += 16667;
++    if (next_us < now - 100000)
++        next_us = now + 16667;
++    xbox_av_field_counter++;                  /* next interlaced field */
++
++    /* Video overlay (PVIDEO): at each vblank the scanout finishes with the
++     * buffers it was given and drops their BUFFER_n_USE bits, and a pending
++     * STOP takes effect. D3DDevice_EnableOverlay(FALSE) writes STOP and spins
++     * until BUFFER reads 0; with nothing emulating the scanout it spun
++     * forever right after the first movie. */
++    BRIDGE_MEM32(XBOX_NV2A_REG_BASE + NV2A_PVIDEO_BUFFER) = 0;
++    BRIDGE_MEM32(XBOX_NV2A_REG_BASE + NV2A_PVIDEO_STOP)   = 0;
+ 
+     if (!xbox_GetConnectedInterrupt(NV2A_VECTOR))
+         return;
+@@ -2002,6 +2095,18 @@ static void kernel_vblank_tick(void)
+                     claimed < 0 ? "not callable" :
+                     claimed ? "claimed it" : "declined it");
+         fflush(stderr);
++        {
++            static long long last_report;
++            static unsigned raised, taken;
++            raised++;
++            if (claimed > 0) taken++;
++            if (getenv("RECOMP_VBLANK_LOG") && now - last_report > 5000000) {
++                fprintf(stderr, "  [NV2A] vblank rate: raised %u, claimed %u, dpcs run %u, t=%lld ms\n",
++                        raised, taken, (unsigned)g_dpc_run_count, now / 1000);
++                fflush(stderr);
++                last_report = now;
++            }
++        }
+     }
+ }
+ 
+@@ -2014,6 +2119,7 @@ static void kernel_drain_dpcs(void)
+         PendingDpc d = g_dpc_queue[head];
+         g_dpc_head = (head + 1) % XBOX_MAX_PENDING_DPC;
+         kernel_run_dpc(d.dpc, d.arg1, d.arg2);
++        g_dpc_run_count++;
+     }
+ }
+ 
+@@ -2043,17 +2149,16 @@ static void bridge_KeInitializeDpc(void)
+ /* ── NV2A interrupt plumbing (ordinals 44, 98, 109) ───────
+  *
+  * The D3D8 library linked into a title installs an ISR for the GPU's vblank /
+- * command-completion interrupt. There is no NV2A here and nothing ever raises
+- * that interrupt, so these exist to let initialisation complete rather than to
+- * deliver anything.
++ * command-completion interrupt. The runtime supplies a synthetic vblank from
++ * its timer thread so titles waiting for a display interrupt can advance past
++ * graphics initialization.
+  *
+  * KeConnectInterrupt reports success: reporting failure sends Halo's
+  * rasterizer down an error path during preinitialize, and the goal is to get
+  * past setup, not to pretend the hardware is broken.
+  *
+- * ponytail: no interrupt is ever delivered. Code that *waits* on the ISR
+- * rather than polling will hang here, and the fix for that is to bridge the
+- * D3D8 entry point that owns the wait, not to synthesise NV2A interrupts.
++ * Set RECOMP_VBLANK=0 to disable synthetic vblank delivery while diagnosing
++ * a title that expects different interrupt timing.
+  */
+ 
+ /* ULONG HalGetInterruptVector(ULONG BusInterruptLevel, PKIRQL Irql) */
+@@ -2235,11 +2340,45 @@ static XboxTimer g_timers[XBOX_MAX_TIMERS];
+ static CRITICAL_SECTION g_timer_lock;
+ static int g_timer_started;
+ 
++/* Game-side HLE libraries that stand in for hardware-driven work (the
++ * DirectSound replacement completing stream packets) hook in here; the timer
++ * thread runs it every pass, in guest context, like a DPC. */
++void (*volatile xbox_hle_periodic_hook)(void);
++
++/* RECOMP_TIMER_WATCH=1: report when the timer thread spends >250 ms in one
++ * step (0 sleep, 1 vblank/ISR, 2 HLE periodic hook, 3 DPCs, 4 timers). */
++static volatile LONG g_timer_phase;
++static volatile DWORD g_timer_phase_tick;
++static DWORD WINAPI kernel_timer_watch(LPVOID unused)
++{
++    (void)unused;
++    for (;;) {
++        DWORD t0 = g_timer_phase_tick;
++        static int k;
++        Sleep(250);
++        if ((++k % 20) == 0) {
++            extern volatile unsigned long xbox_av_field_counter;
++            fprintf(stderr, "  [TIMERWATCH] field counter %lu at %lu ms\n", xbox_av_field_counter, (unsigned long)GetTickCount());
++        }
++        if (t0 && g_timer_phase_tick == t0) {
++            fprintf(stderr, "  [TIMERWATCH] timer thread stuck in phase %ld for %lu ms\n",
++                    g_timer_phase, (unsigned long)(GetTickCount() - t0));
++            fflush(stderr);
++        }
++    }
++}
++
+ static DWORD WINAPI kernel_timer_thread(LPVOID unused)
+ {
++    if (getenv("RECOMP_TIMER_WATCH"))
++        CloseHandle(CreateThread(NULL, 0, kernel_timer_watch, NULL, 0, NULL));
+     int slot = xbox_worker_stack_alloc();
+ 
+     (void)unused;
++    /* 1 ms scheduler granularity: at the default 15.6 ms this loop cannot
++     * deliver an even 60 Hz vblank. */
++    timeBeginPeriod(1);
++    xbox_pin_guest_thread(1);
+     if (slot < 0) {
+         fprintf(stderr, "  [KERNEL] timer thread has no worker stack; "
+                         "timer DPCs will not run\n");
+@@ -2266,9 +2405,16 @@ static DWORD WINAPI kernel_timer_thread(LPVOID unused)
+         long long now;
+         int i;
+ 
+-        Sleep(10);
++        g_timer_phase = 0; g_timer_phase_tick = GetTickCount();
++        Sleep(2);
++        g_timer_phase = 1; g_timer_phase_tick = GetTickCount();
+         kernel_vblank_tick();  /* the GPU's frame clock */
++        g_timer_phase = 2; g_timer_phase_tick = GetTickCount();
++        if (xbox_hle_periodic_hook)
++            xbox_hle_periodic_hook();
++        g_timer_phase = 3; g_timer_phase_tick = GetTickCount();
+         kernel_drain_dpcs();   /* deferred work, before due timers */
++        g_timer_phase = 4; g_timer_phase_tick = GetTickCount();
+         now = (long long)GetTickCount64();
+ 
+         for (i = 0; i < XBOX_MAX_TIMERS; i++) {
+@@ -2384,7 +2530,9 @@ static void bridge_ExQueryPoolBlockSize(void)
+      * answer. It used to return a literal 0 on the theory that this is only
+      * ever used for stats -- which is a guess about the caller, and a title
+      * that sizes a copy from it copies nothing. */
+-    g_eax = xbox_HeapBlockSize(STACK_ARG(0));
++    g_eax = xbox_ContiguousBlockSize(STACK_ARG(0));
++    if (!g_eax)
++        g_eax = xbox_HeapBlockSize(STACK_ARG(0));
+ }
+ 
+ /* ── RtlNtStatusToDosError (ordinal 301) ─────────────────
+@@ -2728,13 +2876,18 @@ static void bridge_NtCreateFile(void)
+         extern uint32_t xbox_LastFileError(void);
+         uint32_t _e = g_eax ? xbox_LastFileError() : 0u;
+         if (g_eax)
+-            fprintf(stderr, "  [FILE] -> 0x%08X FAILED (win32 err=%u%s)\n",
++            fprintf(stderr, "  [FILE] -> 0x%08X FAILED (win32 err=%u%s) access=0x%08X share=%u disp=%u opt=0x%X attr=0x%X caller=0x%08X\n",
+                     g_eax, _e,
+                     _e == 32u ? " ERROR_SHARING_VIOLATION"
+                   : _e ==  2u ? " ERROR_FILE_NOT_FOUND"
+-                  : _e ==  3u ? " ERROR_PATH_NOT_FOUND" : "");
+-        else
+-            fprintf(stderr, "  [FILE] -> 0x%08X\n", g_eax);
++                  : _e ==  3u ? " ERROR_PATH_NOT_FOUND" : "",
++                    access, share, disposition, options, file_attrs, g_xbox_kernel_caller);
++        else {
++            uint32_t token = handle_va ? BRIDGE_MEM32(handle_va) : 0;
++            const char *path = bridge_get_xbox_path(obj_attrs);
++            fprintf(stderr, "  [FILE] -> 0x%08X token=0x%08X caller=0x%08X path='%s'\n",
++                    g_eax, token, g_xbox_kernel_caller, path ? path : "");
++        }
+     }
+     fflush(stderr);
+ }
+@@ -2885,6 +3038,8 @@ static void bridge_XeUnloadSection(void) { bridge_XeSection(0); }
+ #define XBOX_EXCEPTION_EXIT_UNWIND 0x04u
+ #define XBOX_SEH_MAX_FRAMES 64
+ 
++static recomp_func_t bridge_seh_handler(uint32_t handler, uint32_t *eax_in, int *has_eax);
++
+ static void bridge_RtlUnwind(void)
+ {
+     uint32_t target_frame = STACK_ARG(0);
+@@ -2923,10 +3078,10 @@ static void bridge_RtlUnwind(void)
+          * its own frame still on the chain. */
+         BRIDGE_MEM32(XBOX_FS_BASE) = next;
+ 
+-        if (handler) {
+-            recomp_func_t fn = recomp_lookup(handler);
+-            if (!fn) fn = recomp_lookup_manual(handler);
+-            if (!fn) fn = recomp_lookup_kernel(handler);
++        if (handler && handler != 0xFFFFFFF0u /* dispatcher's own node */) {
++            uint32_t thunk_eax = 0;
++            int has_thunk_eax = 0;
++            recomp_func_t fn = bridge_seh_handler(handler, &thunk_eax, &has_thunk_eax);
+             if (fn) {
+                 /* EXCEPTION_DISPOSITION handler(record, frame, context,
+                  * dispatcher) -- cdecl, so the caller pops. */
+@@ -2935,6 +3090,8 @@ static void bridge_RtlUnwind(void)
+                 g_esp -= 4; BRIDGE_MEM32(g_esp) = reg;
+                 g_esp -= 4; BRIDGE_MEM32(g_esp) = exc_record;
+                 g_esp -= 4; BRIDGE_MEM32(g_esp) = 0;  /* return address */
++                if (has_thunk_eax)
++                    g_eax = thunk_eax;
+                 fn();
+                 /* 16, not 20: the handler's own `ret` has already taken the
+                  * return address off, leaving just the four arguments for the
+@@ -2990,14 +3147,19 @@ static void bridge_NtReadFile(void)
+          * whatever precedes the file it actually wants, and a read that stops
+          * early looks identical to one that never started -- until you can
+          * see where each one landed. */
+-        if (poff)
+-            fprintf(stderr, "  [READ] @%lld want=%u got=%u st=0x%08X  %02X %02X %02X %02X\n",
++        static int read_log = -1;
++        if (read_log < 0) { const char *e = getenv("RECOMP_READ_LOG"); read_log = e && *e == '1'; }
++        if (!read_log) { /* per-read trace: RECOMP_READ_LOG=1 */ }
++        else if (poff)
++            fprintf(stderr, "  [READ] h=0x%08X caller=0x%08X @%lld want=%u got=%u st=0x%08X  %02X %02X %02X %02X\n",
++                    STACK_ARG(0), g_xbox_kernel_caller,
+                     (long long)off.QuadPart, length, got,
+                     (uint32_t)ios.Status,
+                     got > 0 ? p[0] : 0, got > 1 ? p[1] : 0,
+                     got > 2 ? p[2] : 0, got > 3 ? p[3] : 0);
+         else
+-            fprintf(stderr, "  [READ] @seq want=%u got=%u st=0x%08X  %02X %02X %02X %02X\n",
++            fprintf(stderr, "  [READ] h=0x%08X caller=0x%08X @seq want=%u got=%u st=0x%08X  %02X %02X %02X %02X\n",
++                    STACK_ARG(0), g_xbox_kernel_caller,
+                     length, got, (uint32_t)ios.Status,
+                     got > 0 ? p[0] : 0, got > 1 ? p[1] : 0,
+                     got > 2 ? p[2] : 0, got > 3 ? p[3] : 0);
+@@ -3147,6 +3309,23 @@ static void bridge_NtQueryDirectoryFile(void)
+     g_eax = (uint32_t)xbox_NtQueryDirectoryFile(handle, NULL, NULL, NULL, &ios,
+                 XBOX_TO_NATIVE(info_va), length, (XBOX_FILE_INFORMATION_CLASS)info_class,
+                 pfn, (BOOLEAN)restart);
++    {
++        const char *pattern = (pfn && pfn->Buffer) ? pfn->Buffer : "*";
++        const char *name = "";
++        uint32_t name_len = 0;
++        if (ios.Status == STATUS_SUCCESS && info_va && length >= 0x40) {
++            name_len = BRIDGE_MEM32(info_va + 0x3C);  /* FileNameLength */
++            if (name_len && name_len < length)
++                name = (const char *)XBOX_TO_NATIVE(info_va + 0x40);
++        }
++        fprintf(stderr,
++                "  [DIR] h=0x%08X cls=%u restart=%u pattern='%.*s' -> st=0x%08X info=%u name='%.*s'\n",
++                STACK_ARG(0), info_class, restart,
++                pfn ? pfn->Length : 1, pattern,
++                (uint32_t)ios.Status, (uint32_t)ios.Information,
++                (int)name_len, name);
++        fflush(stderr);
++    }
+     bridge_write_iostatus(ios_va, ios.Status, (uint32_t)ios.Information);
+ }
+ 
+@@ -3379,6 +3558,251 @@ static void bridge_ObReferenceObjectByHandle(void)
+     g_eax = 0;  /* STATUS_SUCCESS */
+ }
+ 
++/* -- Guest C++ throw decoding -----------------------------------------
++ *
++ * A raise that carries code 0xE06D7363 is an MSVC `throw`, and its record
++ * holds everything needed to name the type: parameter 1 is the exception
++ * object and parameter 2 the ThrowInfo. On x86 every pointer in that chain
++ * is an absolute guest address, so the TypeDescriptor -- and the decorated
++ * type name stored eight bytes into it -- can be read directly.
++ *
++ * Without this the log says only that something threw, which does not
++ * distinguish a bad asset from a failed allocation from a parse error.
++ */
++#define XBOX_CXX_EXCEPTION_CODE 0xE06D7363u
++#define XBOX_CXX_THROW_MAGIC    0x19930520u
++
++/* Guest reads on this path walk pointers the title supplies, any of which may
++ * be wild, so every one is bounds-checked against committed guest RAM first. */
++static int bridge_guest_readable(uint32_t va, uint32_t size)
++{
++    MEMORY_BASIC_INFORMATION mbi;
++    uintptr_t cur, end;
++
++    if (!va || size == 0)
++        return 0;
++    if (va < 0x10000u || (uint64_t)va + size > 0x08000000ull)
++        return 0;
++
++    cur = (uintptr_t)va + g_xbox_mem_offset;
++    end = cur + size;
++    while (cur < end) {
++        uintptr_t region_end;
++        if (!VirtualQuery((const void *)cur, &mbi, sizeof(mbi)))
++            return 0;
++        if (mbi.State != MEM_COMMIT)
++            return 0;
++        if (mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD))
++            return 0;
++        region_end = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
++        if (region_end <= cur)
++            return 0;
++        cur = region_end;
++    }
++    return 1;
++}
++
++static uint32_t bridge_guest_u32(uint32_t va, int *ok)
++{
++    if (!bridge_guest_readable(va, 4)) { *ok = 0; return 0; }
++    return BRIDGE_MEM32(va);
++}
++
++/* The decorated name in a TypeDescriptor is NUL-terminated and sits at +8. */
++static const char *bridge_cxx_type_name(uint32_t throw_info)
++{
++    int ok = 1;
++    uint32_t catch_array, count, catchable, type_desc, name_va;
++    const char *name;
++    uint32_t i;
++
++    if (!throw_info)
++        return NULL;
++    catch_array = bridge_guest_u32(throw_info + 0x0C, &ok);
++    if (!ok || !catch_array)
++        return NULL;
++    count = bridge_guest_u32(catch_array, &ok);
++    if (!ok || count == 0 || count > 64)
++        return NULL;
++    catchable = bridge_guest_u32(catch_array + 4, &ok);   /* most-derived first */
++    if (!ok || !catchable)
++        return NULL;
++    type_desc = bridge_guest_u32(catchable + 4, &ok);
++    if (!ok || !type_desc)
++        return NULL;
++
++    name_va = type_desc + 8;
++    if (!bridge_guest_readable(name_va, 1))
++        return NULL;
++    name = (const char *)XBOX_TO_NATIVE(name_va);
++    for (i = 0; i < 255u; i++) {
++        if (!bridge_guest_readable(name_va + i, 1))
++            return NULL;
++        if (name[i] == '\0')
++            return i ? name : NULL;
++    }
++    return NULL;
++}
++
++/* An MSVC C++ frame's handler is a two-instruction thunk the disassembler
++ * does not list as a function:
++ *
++ *     mov eax, <FuncInfo>    B8 imm32
++ *     jmp __CxxFrameHandler  E9 rel32
++ *
++ * Looking it up directly fails, and a walk that skips it skips every C++
++ * frame -- no catch is ever found and no destructor runs on unwind. Resolve
++ * it by hand: the target is the real handler, and eax must carry FuncInfo. */
++static recomp_func_t bridge_seh_handler(uint32_t handler, uint32_t *eax_in, int *has_eax)
++{
++    recomp_func_t fn;
++
++    *has_eax = 0;
++    fn = recomp_lookup(handler);
++    if (!fn) fn = recomp_lookup_manual(handler);
++    if (!fn) fn = recomp_lookup_kernel(handler);
++    if (fn)
++        return fn;
++    if (bridge_guest_readable(handler, 10)) {
++        const uint8_t *b = (const uint8_t *)XBOX_TO_NATIVE(handler);
++        if (b[0] == 0xB8 && b[5] == 0xE9) {
++            uint32_t imm, target;
++            int32_t rel;
++            memcpy(&imm, b + 1, 4);
++            memcpy(&rel, b + 6, 4);
++            target = handler + 10u + (uint32_t)rel;
++            fn = recomp_lookup(target);
++            if (!fn) fn = recomp_lookup_manual(target);
++            if (fn) {
++                *eax_in = imm;
++                *has_eax = 1;
++            }
++        }
++    }
++    return fn;
++}
++
++/* -- Exception dispatch ------------------------------------------------
++ *
++ * What the kernel does with a raise: walk fs:[0] from the top, call each
++ * frame's handler, and stop at the first that deals with it. This title
++ * throws C++ exceptions during ordinary startup and catches them a few frames
++ * up -- a parser that signals bad input with `throw "..."` -- so a raise that
++ * just returned resumed the code after the throw, which was never meant to
++ * run, and left half-built objects behind for something else to trip over.
++ *
++ * Around each handler call the real dispatcher registers a frame of its own
++ * (RtlpExecuteHandlerForException's nested-exception frame), and MSVC's
++ * catch path depends on it: _UnwindNestedFrames reads fs:[0] as "the
++ * dispatcher's node" and relinks it above the target, and _JumpToContinuation
++ * pops exactly one node before resuming. Without it, a catch in the innermost
++ * frame relinks that frame to itself and the chain loops. So one is pushed
++ * here too, with a handler value nothing resolves, and both walks skip it.
++ *
++ * A handler that finds a catch never returns: the continuation longjmps past
++ * this frame (recomp_eh_continue). Returning means nobody took it.
++ */
++#define XBOX_DISPATCHER_MARKER    0xFFFFFFF0u
++#define XBOX_EXC_CONTINUE_EXECUTION 0u
++#define XBOX_EXC_CONTINUE_SEARCH    1u
++#define XBOX_CONTEXT_SIZE         0x2D0u
++
++static int bridge_seh_frame_ok(uint32_t reg, uint32_t prev, uint32_t floor)
++{
++    if (reg == XBOX_SEH_END_OF_CHAIN || reg == 0)
++        return 0;
++    if (reg & 3u)
++        return 0;
++    if (reg < floor || reg >= 0x08000000u)
++        return 0;
++    if (prev && reg <= prev)
++        return 0;
++    return 1;
++}
++
++static int bridge_dispatch_exception(uint32_t record)
++{
++    uint32_t esp_in  = g_esp;
++    uint32_t context, disp_ctx;
++    uint32_t reg, prev = 0;
++    int      guard, handled = 0;
++
++    /* A CONTEXT and a DispatcherContext slot below the caller's stack. */
++    g_esp -= XBOX_CONTEXT_SIZE;
++    context = g_esp;
++    memset((uint8_t *)XBOX_TO_NATIVE(context), 0, XBOX_CONTEXT_SIZE);
++    BRIDGE_MEM32(context + 0x00) = 0x00010007u;   /* i386 | CONTROL | INTEGER | SEGMENTS */
++    BRIDGE_MEM32(context + 0x9C) = g_edi;
++    BRIDGE_MEM32(context + 0xA0) = g_esi;
++    BRIDGE_MEM32(context + 0xA4) = g_ebx;
++    BRIDGE_MEM32(context + 0xA8) = g_edx;
++    BRIDGE_MEM32(context + 0xAC) = g_ecx;
++    BRIDGE_MEM32(context + 0xB0) = g_eax;
++    BRIDGE_MEM32(context + 0xB4) = g_ebp;
++    BRIDGE_MEM32(context + 0xB8) = BRIDGE_MEM32(record + 0x0C);
++    BRIDGE_MEM32(context + 0xC4) = esp_in;
++    g_esp -= 4;
++    disp_ctx = g_esp;
++    BRIDGE_MEM32(disp_ctx) = 0;
++
++    reg = BRIDGE_MEM32(XBOX_FS_BASE);
++    for (guard = 0; guard < XBOX_SEH_MAX_FRAMES; guard++) {
++        uint32_t next, handler, disposition, node, thunk_eax = 0;
++        int has_thunk_eax = 0;
++        recomp_func_t fn;
++
++        if (!bridge_seh_frame_ok(reg, prev, esp_in))
++            break;
++        next    = BRIDGE_MEM32(reg);
++        handler = BRIDGE_MEM32(reg + 4);
++
++        if (handler == XBOX_DISPATCHER_MARKER || !handler) {
++            prev = reg; reg = next;
++            continue;
++        }
++        fn = bridge_seh_handler(handler, &thunk_eax, &has_thunk_eax);
++        if (!fn) {
++            fprintf(stderr, "  [EH] frame 0x%08X handler 0x%08X is not code -- skipped\n",
++                    reg, handler);
++            prev = reg; reg = next;
++            continue;
++        }
++
++        /* The dispatcher's own node, on top of the whole chain. */
++        g_esp -= 8;
++        node = g_esp;
++        BRIDGE_MEM32(node)     = BRIDGE_MEM32(XBOX_FS_BASE);
++        BRIDGE_MEM32(node + 4) = XBOX_DISPATCHER_MARKER;
++        BRIDGE_MEM32(XBOX_FS_BASE) = node;
++
++        /* EXCEPTION_DISPOSITION handler(record, frame, context, dispatcher) */
++        g_esp -= 4; BRIDGE_MEM32(g_esp) = disp_ctx;
++        g_esp -= 4; BRIDGE_MEM32(g_esp) = context;
++        g_esp -= 4; BRIDGE_MEM32(g_esp) = reg;
++        g_esp -= 4; BRIDGE_MEM32(g_esp) = record;
++        g_esp -= 4; BRIDGE_MEM32(g_esp) = 0;   /* return address */
++        if (has_thunk_eax)
++            g_eax = thunk_eax;
++        fn();
++        g_esp += 16;                            /* cdecl: the ret took the address */
++        disposition = g_eax;
++
++        BRIDGE_MEM32(XBOX_FS_BASE) = BRIDGE_MEM32(node);
++        g_esp = node + 8;
++
++        if (disposition == XBOX_EXC_CONTINUE_EXECUTION) {
++            handled = 1;
++            break;
++        }
++        /* ContinueSearch, and the nested/collided cases this does not model. */
++        prev = reg;
++        reg  = next;
++    }
++
++    g_esp = esp_in;
++    return handled;
++}
++
+ /* ── RtlRaiseException (ordinal 302) ─────────────────────
+  * VOID RtlRaiseException(PEXCEPTION_RECORD ExceptionRecord)
+  *
+@@ -3393,9 +3817,80 @@ static void bridge_RtlRaiseException(void)
+ 
+     static int raise_count = 0;
+     raise_count++;
+-    if (raise_count <= 10) {
+-        fprintf(stderr, "  [KERNEL] RtlRaiseException: record=0x%08X code=0x%08X (#%d)\n",
+-                record_ptr, code, raise_count);
++    if (raise_count <= 40) {
++        int ok = 1;
++        uint32_t flags   = bridge_guest_u32(record_ptr + 0x04, &ok);
++        uint32_t at      = bridge_guest_u32(record_ptr + 0x0C, &ok);
++        uint32_t nparams = bridge_guest_u32(record_ptr + 0x10, &ok);
++
++        fprintf(stderr, "  [KERNEL] RtlRaiseException: record=0x%08X code=0x%08X "
++                        "flags=0x%08X at=0x%08X nparams=%u esp=0x%08X (#%d)\n",
++                record_ptr, code, flags, at, nparams, g_esp, raise_count);
++
++        if (code == XBOX_CXX_EXCEPTION_CODE && nparams >= 3) {
++            uint32_t magic  = bridge_guest_u32(record_ptr + 0x14, &ok);
++            uint32_t object = bridge_guest_u32(record_ptr + 0x18, &ok);
++            uint32_t tinfo  = bridge_guest_u32(record_ptr + 0x1C, &ok);
++            const char *name = (magic == XBOX_CXX_THROW_MAGIC)
++                             ? bridge_cxx_type_name(tinfo) : NULL;
++
++            {   /* Same event in the title's diagnostic log, for ordering. */
++                const char *dp = getenv("CW_DIAG_LOG");
++                FILE *df = (dp && *dp) ? fopen(dp, "a") : NULL;
++                if (df) {
++                    uint32_t sp;
++                    fprintf(df, "[THROW] type=%s esp=0x%08X stack:", name ? name : "?", g_esp);
++                    for (sp = 0; sp < 64; sp++) {
++                        uint32_t v = BRIDGE_MEM32(g_esp + sp * 4);
++                        if (v >= 0x00011000u && v < 0x002A2E00u)
++                            fprintf(df, " %08X", v);
++                    }
++                    fprintf(df, "\n");
++                    fclose(df);
++                }
++            }
++            fprintf(stderr, "    [C++THROW] magic=0x%08X object=0x%08X throwinfo=0x%08X type=%s\n",
++                    magic, object, tinfo, name ? name : "<unknown>");
++
++            /* `throw "text"` (type .PAD/.PBD) makes the object the char*
++             * itself; a std::exception-derived object keeps it one word in.
++             * Either usually names the asset or the failing operation. */
++            if (object) {
++                int is_str = name && (!strcmp(name, ".PAD") || !strcmp(name, ".PBD"));
++                uint32_t msg = bridge_guest_u32(object + (is_str ? 0 : 4), &ok);
++                if (ok && msg && bridge_guest_readable(msg, 1)) {
++                    const char *t = (const char *)XBOX_TO_NATIVE(msg);
++                    uint32_t i;
++                    for (i = 0; i < 128u; i++) {
++                        if (!bridge_guest_readable(msg + i, 1)) { i = 128u; break; }
++                        if (t[i] == '\0') break;
++                    }
++                    if (i && i < 128u)
++                        fprintf(stderr, "    [C++THROW] what=\"%s\"\n", t);
++                }
++            }
++        }
++
++        /* The SEH chain at raise time says whether any frame could catch it. */
++        {
++            uint32_t reg = BRIDGE_MEM32(XBOX_FS_BASE);
++            int depth;
++            fprintf(stderr, "    [SEHCHAIN] fs:[0]=0x%08X", reg);
++            for (depth = 0; depth < 8; depth++) {
++                uint32_t next, handler;
++                if (reg == XBOX_SEH_END_OF_CHAIN || reg == 0)
++                    break;
++                if ((reg & 3u) || reg < XBOX_STACK_BASE || reg >= XBOX_STACK_TOP) {
++                    fprintf(stderr, " <bad:0x%08X>", reg);
++                    break;
++                }
++                next    = BRIDGE_MEM32(reg);
++                handler = BRIDGE_MEM32(reg + 4);
++                fprintf(stderr, " -> [frame=0x%08X handler=0x%08X]", reg, handler);
++                reg = next;
++            }
++            fprintf(stderr, "\n");
++        }
+         fflush(stderr);
+     }
+ 
+@@ -3413,6 +3908,18 @@ static void bridge_RtlRaiseException(void)
+         _clearfp();
+     }
+ 
++    /* A caught C++ exception never comes back here: its continuation
++     * longjmps into the frame that caught it. */
++    if (record_ptr && !bridge_dispatch_exception(record_ptr)) {
++        static int unhandled = 0;
++        if (++unhandled <= 20) {
++            fprintf(stderr, "  [EH] exception 0x%08X at 0x%08X not handled by any frame "
++                            "-- resuming after the raise\n",
++                    code, BRIDGE_MEM32(record_ptr + 0x0C));
++            fflush(stderr);
++        }
++    }
++
+     g_eax = 0;
+ }
+ 
+@@ -3596,6 +4103,19 @@ static void bridge_KeSetBasePriorityThread(void)
+ /* ── KeStallExecutionProcessor (ordinal 151, 1 arg) */
+ static void bridge_KeStallExecutionProcessor(void)
+ {
++    {
++        /* Who stalls: the first few callers, with likely return addresses. */
++        static unsigned n;
++        if (n++ < 4) {
++            int k, found = 0;
++            fprintf(stderr, "  [KERNEL] KeStallExecutionProcessor(%u) from:", STACK_ARG(0));
++            for (k = 0; k < 64 && found < 8; k++) {
++                uint32_t v = BRIDGE_MEM32(g_esp + 4u * (uint32_t)k);
++                if (v >= 0x00011000u && v < 0x00330000u) { fprintf(stderr, " %08X", v); found++; }
++            }
++            fprintf(stderr, "\n");
++        }
++    }
+     xbox_KeStallExecutionProcessor(STACK_ARG(0));
+     g_eax = 0;
+ }
+@@ -8700,9 +9220,24 @@ static void kernel_thunk_dispatch(void)
+         static DWORD last_summary_tick = 0;
+         DWORD now = GetTickCount();
+         if (last_summary_tick == 0) last_summary_tick = now;
+-        if (now - last_summary_tick >= 2000 && g_kernel_call_count > 200) {
+-            fprintf(stderr, "  [KERNEL] summary: %d total calls, latest ordinal %u (slot %d) esp=0x%08X\n",
++        if (now - last_summary_tick >= 2000 && g_kernel_call_count > 200 && KERNEL_LOG_ON()) {
++            fprintf(stderr, "  [KERNEL] summary: %d total calls, latest ordinal %u (slot %d) esp=0x%08X",
+                     g_kernel_call_count, ordinal, slot, g_esp);
++            /* Where the caller is: likely return addresses above esp (values
++             * inside the title image). A title sitting still is usually in a
++             * wait loop, and this names it. */
++            if (g_esp) {
++                int k, found = 0;
++                fprintf(stderr, " stack:");
++                for (k = 0; k < 96 && found < 8; k++) {
++                    uint32_t v = BRIDGE_MEM32(g_esp + 4u * (uint32_t)k);
++                    if (v >= 0x00011000u && v < 0x00330000u) {
++                        fprintf(stderr, " %08X", v);
++                        found++;
++                    }
++                }
++            }
++            fprintf(stderr, "\n");
+             /* And which ones, ranked. "Latest" names whatever the sample
+              * happened to land on; the question behind this line is what a
+              * title sitting still is actually asking the kernel for, and
+@@ -9046,3 +9581,22 @@ void xbox_kernel_bridge_init(void)
+             KERNEL_VA_BASE, KERNEL_VA_BASE + (resolved - 1) * 4);
+ 
+ }
++
++/* -- Event signalling for high-level (HLE) library replacements --------
++ *
++ * Replacement code for a title's statically linked XDK libraries -- a silent
++ * DirectSound, for one -- has to complete work the way the hardware would:
++ * a finished stream packet signals the event handle the title attached to
++ * it. Those handles are guest tokens, and only this file knows how to turn
++ * one into the host event behind it. Returns nonzero when an event was set. */
++int xbox_hle_set_event(uint32_t guest_handle)
++{
++    HANDLE h;
++
++    if (!guest_handle)
++        return 0;
++    h = bridge_resolve_handle(guest_handle);
++    if (!h)
++        return 0;
++    return SetEvent(h) ? 1 : 0;
++}
+diff --git a/src/kernel/kernel_file.c b/src/kernel/kernel_file.c
+index c131993..c0fe15c 100644
+--- a/src/kernel/kernel_file.c
++++ b/src/kernel/kernel_file.c
+@@ -147,6 +147,35 @@ NTSTATUS __stdcall xbox_NtCreateFile(
+         return STATUS_OBJECT_PATH_NOT_FOUND;
+     }
+ 
++    /* The disc is read-only, and the folder standing in for it holds the
++     * title's only copy of its data. A write-capable or creating open of a
++     * media path gets what the disc filesystem answers -- access denied --
++     * instead of truncating a host file. Clone Wars writes Bins\\done.bin
++     * this way after caching its shell data, and the open had been emptying
++     * the dumped file. */
++    {
++        extern __declspec(thread) int g_xbox_path_is_media;
++        const ACCESS_MASK write_bits = 0x00000002u | 0x00000004u | 0x00000010u |
++                                       0x00000100u | 0x00010000u |
++                                       0x40000000u | 0x10000000u;
++        /* FILE_SUPERSEDE 0, FILE_CREATE 2, FILE_OVERWRITE 4, FILE_OVERWRITE_IF 5 */
++        int creates = CreateDisposition == 0 || CreateDisposition == 2 ||
++                      CreateDisposition == 4 || CreateDisposition == 5;
++        if (g_xbox_path_is_media && ((DesiredAccess & write_bits) || creates)) {
++            static int logged;
++            if (logged++ < 20) {
++                fprintf(stderr, "  [FILE] media write refused: access=0x%08lX disposition=%lu\n",
++                        (unsigned long)DesiredAccess, (unsigned long)CreateDisposition);
++                fflush(stderr);
++            }
++            if (IoStatusBlock) {
++                IoStatusBlock->Status = STATUS_ACCESS_DENIED;
++                IoStatusBlock->Information = 0;
++            }
++            return STATUS_ACCESS_DENIED;
++        }
++    }
++
+     /* A partition device opened as a directory.
+      *
+      * The path layer maps \Device\Harddisk0\PartitionN to a PartitionN.img
+@@ -187,6 +216,24 @@ NTSTATUS __stdcall xbox_NtCreateFile(
+             xbox_disposition_to_win32(CreateDisposition), flags_and_attrs, NULL);
+     }
+ 
++    if (h == INVALID_HANDLE_VALUE && !(CreateOptions & XBOX_FILE_DIRECTORY_FILE)) {
++        /* Clone Wars saves its profile with GENERIC_ALL and no sharing
++         * (access 0x101F0080, FILE_OPEN_IF); Windows answers ERROR_ACCESS_DENIED
++         * for that on an existing file, and the title then sat on "Saving
++         * profile" forever. Retry with the rights a save needs. */
++        DWORD err = GetLastError();
++        if (err == ERROR_ACCESS_DENIED || err == ERROR_SHARING_VIOLATION) {
++            DWORD acc = xbox_access_to_win32(DesiredAccess);
++            if (acc & GENERIC_ALL) acc = (acc & ~GENERIC_ALL) | GENERIC_READ | GENERIC_WRITE;
++            h = CreateFileW(win_path, acc, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
++                xbox_disposition_to_win32(CreateDisposition), flags_and_attrs, NULL);
++            fprintf(stderr, "  [FILE] retry after err=%lu with access=0x%08lX shared: %s\n",
++                    (unsigned long)err, (unsigned long)acc, h == INVALID_HANDLE_VALUE ? "FAILED" : "ok");
++            fflush(stderr);
++            if (h == INVALID_HANDLE_VALUE) SetLastError(err);
++        }
++    }
++
+     if (h == INVALID_HANDLE_VALUE) {
+         DWORD err = GetLastError();
+         /* Kept for the caller's trace. An NTSTATUS says "it did not open";
+@@ -298,10 +345,13 @@ NTSTATUS __stdcall xbox_NtWriteFile(
+     return STATUS_UNSUCCESSFUL;
+ }
+ 
++void xbox_ReleaseDirContext(HANDLE FileHandle);
++
+ NTSTATUS __stdcall xbox_NtClose(HANDLE Handle)
+ {
+     XBOX_TRACE(XBOX_LOG_FILE, "NtClose(handle=%p)", Handle);
+     if (Handle && Handle != INVALID_HANDLE_VALUE) {
++        xbox_ReleaseDirContext(Handle);
+         CloseHandle(Handle);
+         return STATUS_SUCCESS;
+     }
+@@ -607,6 +657,30 @@ static DIR_CONTEXT* find_or_create_dir_context(HANDLE FileHandle, BOOL create)
+     return NULL;
+ }
+ 
++/* Forget a directory scan when its handle is closed.
++ *
++ * Contexts are keyed by the host HANDLE, and Windows hands a closed handle's
++ * value straight to the next open. A scan left open -- any single-name lookup
++ * such as config.ini keeps its find handle -- was then picked up by whatever
++ * directory opened next, whose first query continued the old search and got
++ * STATUS_NO_MORE_FILES. Clone Wars saw Addon\ and Data\Sounds\ as empty. */
++void xbox_ReleaseDirContext(HANDLE FileHandle)
++{
++    int i;
++    if (!s_dir_cs_init) return;
++    EnterCriticalSection(&s_dir_cs);
++    for (i = 0; i < MAX_DIR_CONTEXTS; i++) {
++        if (s_dir_contexts[i].file_handle == FileHandle && s_dir_contexts[i].find_handle) {
++            if (s_dir_contexts[i].find_handle != INVALID_HANDLE_VALUE)
++                FindClose(s_dir_contexts[i].find_handle);
++            s_dir_contexts[i].find_handle = NULL;
++            s_dir_contexts[i].file_handle = NULL;
++            s_dir_contexts[i].first_done = FALSE;
++        }
++    }
++    LeaveCriticalSection(&s_dir_cs);
++}
++
+ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+     HANDLE FileHandle, HANDLE Event, PIO_APC_ROUTINE ApcRoutine, PVOID ApcContext,
+     PXBOX_IO_STATUS_BLOCK IoStatusBlock, PVOID FileInformation, ULONG Length,
+@@ -629,6 +703,9 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+     if (!ctx)
+         return STATUS_INSUFFICIENT_RESOURCES;
+ 
++    /* As on NT, the pattern only matters to the call that starts a scan.
++     * Titles pass it again on every "next" call; restarting on it returned
++     * the folder's first entry forever. */
+     if (RestartScan || !ctx->first_done) {
+         if (ctx->find_handle && ctx->find_handle != INVALID_HANDLE_VALUE) {
+             FindClose(ctx->find_handle);
+@@ -645,7 +722,12 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+         WCHAR* clean_path = dir_path;
+         if (wcsncmp(clean_path, L"\\\\?\\", 4) == 0)
+             clean_path += 4;
+-        if (FileName && FileName->Buffer) {
++        /* An empty pattern means "everything" to the Xbox kernel, and titles
++         * pass one to enumerate a folder. Handing it through built
++         * "dir\" -- which FindFirstFileW rejects -- so every folder listed as
++         * empty. Clone Wars enumerates Data\ for its sound banks that way and
++         * shows the dirty-disc screen when it finds none. */
++        if (FileName && FileName->Buffer && FileName->Length > 0) {
+             WCHAR pattern_wide[MAX_PATH];
+             MultiByteToWideChar(CP_ACP, 0, FileName->Buffer, FileName->Length,
+                                 pattern_wide, MAX_PATH);
+@@ -671,9 +753,14 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+         }
+     }
+ 
+-    /* FATX enumeration never exposes the host's dot directories. */
+-    while (!wcscmp(ctx->find_data.cFileName, L".") ||
+-           !wcscmp(ctx->find_data.cFileName, L"..")) {
++    /* FATX enumeration never exposes the host's dot directories. Host-only
++     * folders beside the game files -- "!WORK" sources and builds, ".claude",
++     * "logs" -- are hidden too: titles walk their whole disc at boot, and a
++     * development tree of thousands of files there kept the game from ever
++     * reaching its first frame when started by double-click. */
++    while (ctx->find_data.cFileName[0] == L'.' ||
++           ctx->find_data.cFileName[0] == L'!' ||
++           !_wcsicmp(ctx->find_data.cFileName, L"logs")) {
+         if (!FindNextFileW(ctx->find_handle, &ctx->find_data)) {
+             FindClose(ctx->find_handle);
+             ctx->find_handle = NULL;
+@@ -1152,7 +1239,8 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+         ctx->dir = NULL;
+     }
+ 
+-    if (RestartScan || ctx->dir == NULL) {
++    if (RestartScan || ctx->dir == NULL ||
++        (FileName && FileName->Buffer && FileName->Length > 0)) {
+         if (ctx->dir) { closedir(ctx->dir); ctx->dir = NULL; }
+         const char* dpath = w32_handle_path(FileHandle);
+         if (!dpath) { LeaveCriticalSection(&s_dir_cs); return STATUS_UNSUCCESSFUL; }
+diff --git a/src/kernel/kernel_hal.c b/src/kernel/kernel_hal.c
+index 842f99c..1d91596 100644
+--- a/src/kernel/kernel_hal.c
++++ b/src/kernel/kernel_hal.c
+@@ -97,9 +97,16 @@ static void xbox_update_tick_count(void)
+  * Both Xbox and Windows return LARGE_INTEGER.
+  * ============================================================================ */
+ 
++/* Under RECOMP_FIXED_TIME (see xbox_ReadTimeStampCounter) every guest clock
++ * follows the per-frame virtual counter, including the wall-clock date, which
++ * titles also use to seed their random numbers. */
++static int fixed_time(void);
++uint64_t xbox_ReadTimeStampCounter(void);
++
+ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceCounter(void)
+ {
+     LARGE_INTEGER counter;
++    if (fixed_time()) { counter.QuadPart = (LONGLONG)xbox_ReadTimeStampCounter(); return counter; }
+     QueryPerformanceCounter(&counter);
+     return counter;
+ }
+@@ -107,6 +114,7 @@ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceCounter(void)
+ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceFrequency(void)
+ {
+     LARGE_INTEGER freq;
++    if (fixed_time()) { freq.QuadPart = 733333333; return freq; }
+     QueryPerformanceFrequency(&freq);
+     return freq;
+ }
+@@ -120,6 +128,12 @@ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceFrequency(void)
+ 
+ VOID __stdcall xbox_KeQuerySystemTime(PLARGE_INTEGER CurrentTime)
+ {
++    if (CurrentTime && fixed_time()) {
++        /* 2003-01-01 00:00 UTC plus virtual time, in 100 ns units */
++        CurrentTime->QuadPart = 126869760000000000LL +
++            (LONGLONG)(xbox_ReadTimeStampCounter() / 733333333ull * 10000000ull);
++        return;
++    }
+     if (CurrentTime)
+         GetSystemTimeAsFileTime((LPFILETIME)CurrentTime);
+ }
+@@ -419,6 +433,7 @@ NTSTATUS __stdcall xbox_NtSetSystemTime(PLARGE_INTEGER SystemTime, PLARGE_INTEGE
+ 
+ static ULONG g_av_saved_data_address = 0;
+ static ULONG g_av_display_mode = 0;
++volatile unsigned long xbox_av_field_counter;
+ 
+ ULONG __stdcall xbox_AvGetSavedDataAddress(void)
+ {
+@@ -485,6 +500,15 @@ VOID __stdcall xbox_AvSendTVEncoderOption(
+         *Result = 0;
+         break;
+ 
++    case AV_OPTION_GUESS_FIELD:
++        /* Which interlaced field the encoder is scanning. D3D's vblank DPC
++         * only advances its VBlankCount when the count's parity matches the
++         * field, so a constant answer froze the count at 1 -- and the XMV
++         * player, which times frames on VBlankCount and waits for an even
++         * field, never started the intro movie. One field per vblank. */
++        *Result = xbox_av_field_counter & 1;
++        break;
++
+     case AV_OPTION_BLANK_SCREEN:
+     case AV_OPTION_MACROVISION_MODE:
+     case AV_OPTION_FLICKER_FILTER:
+@@ -752,12 +776,65 @@ ULONGLONG __stdcall xbox_KeQueryInterruptTime(void)
+  * ========================================================================= */
+ #define XBOX_TSC_HZ 733333333ull
+ 
++/* RECOMP_FIXED_TIME=1: the counter advances by exactly 1/60 s per presented
++ * frame (xbox_TscFrameTick, called by the host renderer at Present) instead
++ * of with the host clock. A title timing its frames with the TSC then sees
++ * the same step every frame, so the same input replays to the same game --
++ * with the host clock, frame lengths jitter by microseconds and a replay
++ * drifts apart within a minute. Only when no frame has been presented for a
++ * quarter second (loading screens, movies) does the host clock take over,
++ * minus that quarter second, so waits still finish. */
++static int s_fixed_time = -1;
++static SRWLOCK s_vt_lock = SRWLOCK_INIT;
++static uint64_t s_vt_base;              /* virtual counter at the last frame */
++static LONGLONG s_vt_real;              /* host counter at the last frame */
++static LARGE_INTEGER s_vt_freq;
++
++static int fixed_time(void)
++{
++    if (s_fixed_time < 0) {
++        const char *e = getenv("RECOMP_FIXED_TIME");
++        LARGE_INTEGER now;
++        QueryPerformanceFrequency(&s_vt_freq);
++        QueryPerformanceCounter(&now);
++        s_vt_real = now.QuadPart;
++        s_fixed_time = (e && *e == '1') ? 1 : 0;
++    }
++    return s_fixed_time;
++}
++
++static uint64_t vt_extra(LONGLONG now)
++{
++    LONGLONG slack = s_vt_freq.QuadPart / 4, since = now - s_vt_real;
++    if (since <= slack) return 0;
++    return (uint64_t)(since - slack) * XBOX_TSC_HZ / (uint64_t)s_vt_freq.QuadPart;
++}
++
++void xbox_TscFrameTick(void)
++{
++    LARGE_INTEGER now;
++    if (!fixed_time()) return;
++    QueryPerformanceCounter(&now);
++    AcquireSRWLockExclusive(&s_vt_lock);
++    s_vt_base += XBOX_TSC_HZ / 60 + vt_extra(now.QuadPart);
++    s_vt_real = now.QuadPart;
++    ReleaseSRWLockExclusive(&s_vt_lock);
++}
++
+ uint64_t xbox_ReadTimeStampCounter(void)
+ {
+     static LARGE_INTEGER freq;
+     static LARGE_INTEGER origin;
+     LARGE_INTEGER now;
+ 
++    if (fixed_time()) {
++        uint64_t v;
++        QueryPerformanceCounter(&now);
++        AcquireSRWLockShared(&s_vt_lock);
++        v = s_vt_base + vt_extra(now.QuadPart);
++        ReleaseSRWLockShared(&s_vt_lock);
++        return v;
++    }
+     if (freq.QuadPart == 0) {
+         QueryPerformanceFrequency(&freq);
+         QueryPerformanceCounter(&origin);
+diff --git a/src/kernel/kernel_path.c b/src/kernel/kernel_path.c
+index b2a6bf1..65af16a 100644
+--- a/src/kernel/kernel_path.c
++++ b/src/kernel/kernel_path.c
+@@ -43,6 +43,7 @@ typedef struct {
+ 
+ static const path_rule s_rules[] = {
+     { "\\Device\\CdRom0\\",                   0, NULL,         NULL          },
++    { "\\Device\\CdRom0",                    0, NULL,         NULL          },
+     { "\\Device\\Harddisk0\\Partition1\\",    0, NULL,         NULL          },
+     /* The rest of the disk. Partition 0 is the whole raw device, 2 holds
+      * system data, and 3-5 are the per-title caches behind X:, Y: and Z:.
+@@ -372,6 +373,11 @@ const wchar_t *xbox_LastHostPath(void)
+ }
+ 
+ 
++/* Whether the last path xbox_translate_path resolved is on the title's disc
++ * (CdRom0 / D:), which is read-only. Per thread, read straight after
++ * translating. */
++__declspec(thread) int g_xbox_path_is_media;
++
+ BOOL xbox_translate_path(const char* xbox_path, xbox_host_char* host_path_buf, DWORD buf_size)
+ {
+     const char*  remainder = NULL;
+@@ -384,6 +390,7 @@ BOOL xbox_translate_path(const char* xbox_path, xbox_host_char* host_path_buf, D
+ 
+     if (!s_initialized)
+         xbox_path_init(NULL, NULL);
++    g_xbox_path_is_media = 0;
+ 
+     {
+         char linked[512];
+@@ -403,6 +410,11 @@ BOOL xbox_translate_path(const char* xbox_path, xbox_host_char* host_path_buf, D
+             remainder = xbox_path + skip;
+             base_dir  = s_rules[i].to_save ? s_save_dir : s_game_dir;
+             sub_dir   = s_rules[i].sub_win;
++            /* Only the disc. Other rules also map into the game directory
++             * (TDATA on partition 1, C:), and those are writable. */
++            g_xbox_path_is_media = strstr(s_rules[i].prefix, "CdRom0") != NULL ||
++                                   _strnicmp(s_rules[i].prefix, "D:", 2) == 0 ||
++                                   _strnicmp(s_rules[i].prefix, "\\??\\D:", 6) == 0;
+             goto translate;
+         }
+     }
+diff --git a/src/kernel/kernel_thread.c b/src/kernel/kernel_thread.c
+index 17cb31f..d172c1b 100644
+--- a/src/kernel/kernel_thread.c
++++ b/src/kernel/kernel_thread.c
+@@ -11,6 +11,7 @@
+  *   - Thread priorities use NT KPRIORITY increments
+  */
+ 
++#include <stdlib.h>
+ #include "kernel.h"
+ #include "xbox_memory_layout.h"   /* XBOX_WORKER_STACK_* + worker-stack decls */
+ 
+@@ -27,8 +28,43 @@ typedef struct _XBOX_THREAD_START_INFO {
+     PVOID                StartContext;
+ } XBOX_THREAD_START_INFO;
+ 
++/* RECOMP_ONE_CORE=1: the Xbox has one CPU. Its titles never had two of
++ * their threads running at the same instant, and a higher-priority thread
++ * (or a DPC) ran without interruption from lower ones. Pin every guest
++ * thread to one host core so the same holds here; interrupt-level work
++ * (the timer thread) is pinned there too at the top priority, so it
++ * pre-empts them the way a DPC would. */
++void xbox_pin_guest_thread(int interrupt_level)
++{
++    static int mode = -1;
++    static DWORD_PTR core;
++    if (mode < 0) {
++        const char *e = getenv("RECOMP_ONE_CORE");
++        DWORD_PTR proc = 0, sys = 0;
++        /* On by default (RECOMP_ONE_CORE=0 turns it off): DirectSound
++         * completion callbacks run game code on the timer thread, and with
++         * guest threads spread over cores that code ran at the same instant
++         * as the main thread's movie player -- which on the console it
++         * never could -- and a movie could stall for good. */
++        mode = (e && *e == '0') ? 0 : 1;
++        if (mode && GetProcessAffinityMask(GetCurrentProcess(), &proc, &sys) && proc) {
++            /* The highest core the process may use: away from core 0,
++             * where the OS and most other work land. */
++            core = (DWORD_PTR)1 << (8 * sizeof(DWORD_PTR) - 1);
++            while (core && !(proc & core)) core >>= 1;
++        }
++        if (!core) mode = 0;
++    }
++    if (!mode)
++        return;
++    SetThreadAffinityMask(GetCurrentThread(), core);
++    if (interrupt_level)
++        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
++}
++
+ static DWORD WINAPI xbox_thread_wrapper(LPVOID lpParameter)
+ {
++    xbox_pin_guest_thread(0);
+     XBOX_THREAD_START_INFO info = *(XBOX_THREAD_START_INFO*)lpParameter;
+ 
+     /* Free the start info before calling the routine - the routine may
+diff --git a/src/kernel/nv2a_pb_exec.c b/src/kernel/nv2a_pb_exec.c
+index 4bd83d8..e227d9e 100644
+--- a/src/kernel/nv2a_pb_exec.c
++++ b/src/kernel/nv2a_pb_exec.c
+@@ -143,6 +143,7 @@ static int surface_write_refused(uint32_t base, uint32_t bytes, const char *what
+ #define NV097_SET_VERTEX_DATA_ARRAY_OFFSET 0x1720   /* +i*4, 16 attributes */
+ #define NV097_SET_VERTEX_DATA_ARRAY_FORMAT 0x1760   /* +i*4 */
+ #define NV097_SET_BEGIN_END               0x17FC
++#define NV097_DRAW_ARRAYS                 0x1810
+ #define NV097_SET_TEXTURE_OFFSET          0x1B00   /* +i*0x40 */
+ #define NV097_SET_TEXTURE_FORMAT          0x1B04
+ #define NV097_SET_TEXTURE_ADDRESS         0x1B08
+@@ -497,8 +498,12 @@ static void raster_triangle(const float a[2], const float b[2],
+                             const float c[2], uint32_t argb,
+                             const float uv[3][2]);
+ 
++static int pb_noraster(void);
++
+ static void clear_surface(uint32_t param)
+ {
++    if (pb_noraster())
++        return;
+     uint8_t *mem = (uint8_t *)xbox_GetMemoryOffset();
+     uint32_t bpp = surface_bpp();
+     uint32_t y, x;
+@@ -1132,11 +1137,11 @@ static int batch_is_screen_space(void)
+ }
+ 
+ /* NV097 primitive types that are triangles under some winding. */
+-#define NV_PRIM_TRIANGLES      4
+-#define NV_PRIM_TRIANGLE_STRIP 5
+-#define NV_PRIM_TRIANGLE_FAN   6
+-#define NV_PRIM_QUADS          7
+-#define NV_PRIM_QUAD_STRIP     8
++#define NV_PRIM_TRIANGLES      5
++#define NV_PRIM_TRIANGLE_STRIP 6
++#define NV_PRIM_TRIANGLE_FAN   7
++#define NV_PRIM_QUADS          8
++#define NV_PRIM_QUAD_STRIP     9
+ 
+ /* How many post-draw captures to keep: enough to see whether the geometry
+  * is stable from frame to frame, few enough not to fill a directory. */
+@@ -1238,6 +1243,17 @@ static void raster_batch(void)
+  * question is what space attribute 0 arrives in: a title running a vertex
+  * program hands over object-space positions that mean nothing without running
+  * it, while pre-transformed screen-space coordinates can be drawn directly. */
++/* RECOMP_PB_NORASTER: keep consuming the pushbuffer (GET advances, fences
++ * and notifies fire) but draw nothing in software -- for a title whose
++ * pictures come from a host renderer instead. Rasterising every batch here
++ * made D3D's KickOff spin waiting for this "GPU" to catch up. */
++static int pb_noraster(void)
++{
++    static int v = -1;
++    if (v < 0) v = getenv("RECOMP_PB_NORASTER") != NULL;
++    return v;
++}
++
+ static void draw_primitive(void)
+ {
+     float v[4];
+@@ -1246,6 +1262,8 @@ static void draw_primitive(void)
+     if (!s_gpu.prim || !s_gpu.idx_count)
+         return;
+     s_gpu.draws++;
++    if (pb_noraster())
++        return;
+     if ((s_gpu.draws % 200) == 0)
+         fprintf(stderr, "  [GPU] draw #%u\n", s_gpu.draws);
+     s_gpu.verts += s_gpu.idx_count;
+@@ -1627,6 +1645,23 @@ void nv2a_pb_exec_method(uint32_t subch, uint32_t method, uint32_t param)
+             s_gpu.idx[s_gpu.idx_count++] = (uint16_t)(param >> 16);
+         }
+         break;
++
++    case NV097_DRAW_ARRAYS:
++        /* Packed as start index in bits 0..23 and count-minus-one in 24..31.
++         * This is the title's common path: it points the GPU at vertex arrays
++         * and asks for a run of sequential vertices. Without expanding that
++         * run into the executor's index list, END sees an empty batch and the
++         * log says DRAW_ARRAYS happened while draws stay at zero. */
++        if (s_gpu.prim) {
++            uint32_t start = param & 0x00FFFFFFu;
++            uint32_t count = ((param >> 24) & 0xFFu) + 1u;
++            if (count > NV_MAX_INDICES - s_gpu.idx_count)
++                count = NV_MAX_INDICES - s_gpu.idx_count;
++            for (uint32_t i = 0; i < count; i++)
++                s_gpu.idx[s_gpu.idx_count++] = (uint16_t)(start + i);
++        }
++        break;
++
+     case NV097_SET_TEXTURE_OFFSET:
+         /* A texture offset is a DMA-object offset, exactly like a surface or a
+          * vertex array offset -- physical, and reachable only through the
+diff --git a/src/kernel/recomp_trace.c b/src/kernel/recomp_trace.c
+index 0b2d723..c3c80e7 100644
+--- a/src/kernel/recomp_trace.c
++++ b/src/kernel/recomp_trace.c
+@@ -23,15 +23,22 @@ extern RECOMP_TLS uint32_t g_ebx, g_esi, g_edi;
+ 
+ /* A run that recurses produces trace lines without limit, and the useful
+  * window is rarely the first few thousand. The budget stops a diagnostic from
+- * filling a disk, and is deliberately generous: a budget that runs out before
+- * the interesting part turns "no trace here" into a false negative, which is
+- * worse than a large file. Override with RECOMP_TRACE_BUDGET. */
++ * filling a disk. Tracing is opt-in because a traced render/present helper can
++ * be called while streaming data and make a normal boot look frozen. Enable
++ * with RECOMP_TRACE=1 or RECOMP_TRACE_BUDGET=N. */
+ static long trace_budget(void)
+ {
+     static long budget = -1;
+     if (budget < 0) {
+         const char *env = getenv("RECOMP_TRACE_BUDGET");
+-        budget = env ? strtol(env, NULL, 0) : 400000;
++        if (env) {
++            budget = strtol(env, NULL, 0);
++        } else if (getenv("RECOMP_TRACE") || getenv("RECOMP_TRACE_ARGS") ||
++                   getenv("RECOMP_TRACE_DEREF")) {
++            budget = 400000;
++        } else {
++            budget = 0;
++        }
+         if (budget < 0) budget = 0;
+     }
+     return budget > 0 ? budget-- : 0;
+diff --git a/src/kernel/xbox_memory_layout.c b/src/kernel/xbox_memory_layout.c
+index 0e17178..3b9234f 100644
+--- a/src/kernel/xbox_memory_layout.c
++++ b/src/kernel/xbox_memory_layout.c
+@@ -757,6 +757,7 @@ static uint32_t g_tls_template_va, g_tls_total, g_tls_thread_size = 64;
+ 
+ RECOMP_TLS uint32_t g_eax = 0, g_ecx = 0, g_edx = 0, g_esp = 0;
+ RECOMP_TLS uint32_t g_ebx = 0, g_esi = 0, g_edi = 0;
++RECOMP_TLS int g_mc[8];
+ 
+ #ifdef RECOMP_ABI_CHECK
+ /* Report a lifted function that returned without restoring ebx/esi/edi.
+@@ -892,6 +893,117 @@ int recomp_guest_longjmp(uint32_t buf_va, uint32_t value)
+     return 0;
+ }
+ 
++/* ---- C++ exception continuations ---------------------------------------
++ *
++ * MSVC's catch machinery ends in _JumpToContinuation: after the catch funclet
++ * returns the address to resume at, it reloads esp from just below the
++ * function's registration node, sets ebp to node + 0x0C, and jumps. The
++ * target is the middle of the function that owns the try block -- a C
++ * function that is still live further up the native stack. A guest-only jump
++ * cannot get there, and the indirect tail jump used to fail its lookup and
++ * return into __CxxFrameHandler as if the catch had never happened.
++ *
++ * So every translated function that owns a try block takes a native setjmp
++ * on entry and binds it here once it registers its frame. The continuation
++ * then becomes a native longjmp to that function, which resumes at the label
++ * for the target. Keyed by guest registration node, per thread -- guest
++ * threads run on host threads, so a binding must never cross them.
++ *
++ * A binding also records the owner's address range, and a continuation whose
++ * target is outside it is refused: a stale binding from a function that has
++ * since returned is then a logged failure rather than a jump into a dead
++ * native frame.
++ */
++#define RECOMP_EH_SLOTS 64
++
++typedef struct {
++    uint32_t frame;
++    jmp_buf *native;
++    uint32_t lo, hi;
++} recomp_eh_slot;
++
++static RECOMP_TLS recomp_eh_slot s_eh[RECOMP_EH_SLOTS];
++static RECOMP_TLS int            s_eh_used;
++static RECOMP_TLS uint32_t       s_eh_resume_ebp;
++static RECOMP_TLS uint32_t       s_eh_resume_target;
++
++void recomp_eh_bind(uint32_t frame, jmp_buf *native, uint32_t lo, uint32_t hi)
++{
++    int i, w = 0;
++
++    /* Anything registered below this node belongs to frames that are gone. */
++    for (i = 0; i < s_eh_used; i++)
++        if (s_eh[i].frame > frame)
++            s_eh[w++] = s_eh[i];
++    s_eh_used = w;
++    if (s_eh_used >= RECOMP_EH_SLOTS) {
++        memmove(&s_eh[0], &s_eh[1], sizeof(s_eh[0]) * (RECOMP_EH_SLOTS - 1));
++        s_eh_used = RECOMP_EH_SLOTS - 1;
++    }
++    s_eh[s_eh_used].frame  = frame;
++    s_eh[s_eh_used].native = native;
++    s_eh[s_eh_used].lo     = lo;
++    s_eh[s_eh_used].hi     = hi;
++    s_eh_used++;
++}
++
++void recomp_eh_unbind(jmp_buf *native)
++{
++    int i, w = 0;
++    for (i = 0; i < s_eh_used; i++)
++        if (s_eh[i].native != native)
++            s_eh[w++] = s_eh[i];
++    s_eh_used = w;
++}
++
++uint32_t recomp_eh_resume_ebp(void)    { return s_eh_resume_ebp; }
++uint32_t recomp_eh_resume_target(void) { return s_eh_resume_target; }
++
++int recomp_eh_continue(uint32_t target, uint32_t frame)
++{
++    const uint8_t *mem = (const uint8_t *)g_memory_offset;
++    int i;
++
++    for (i = s_eh_used - 1; i >= 0; i--) {
++        if (s_eh[i].frame != frame)
++            continue;
++        if (target < s_eh[i].lo || target >= s_eh[i].hi) {
++            fprintf(stderr, "[EH] continuation 0x%08X outside owner 0x%08X-0x%08X "
++                            "(frame 0x%08X) -- refused\n",
++                    target, s_eh[i].lo, s_eh[i].hi, frame);
++            fflush(stderr);
++            return 0;
++        }
++        {
++            const char *dp = getenv("CW_DIAG_LOG");
++            FILE *df = (dp && *dp) ? fopen(dp, "a") : NULL;
++            if (df) {
++                fprintf(df, "[CATCH] resume 0x%08X in owner 0x%08X frame 0x%08X\n",
++                        target, s_eh[i].lo, frame);
++                fclose(df);
++            }
++        }
++        /* What _JumpToContinuation itself sets before its jmp. */
++        g_esp = *(const uint32_t *)(mem + frame - 4);
++        s_eh_resume_ebp    = frame + 0x0C;
++        s_eh_resume_target = target;
++        g_seh_ebp = s_eh_resume_ebp;
++        g_ebp     = s_eh_resume_ebp;
++        s_eh_used = i + 1;          /* inner frames were unwound */
++        longjmp(*s_eh[i].native, 1);
++    }
++    fprintf(stderr, "[EH] no native binding for frame 0x%08X (continuation 0x%08X)\n",
++            frame, target);
++    fflush(stderr);
++    return 0;
++}
++
++void recomp_eh_bad_continuation(uint32_t func, uint32_t target)
++{
++    fprintf(stderr, "[EH] 0x%08X has no label for continuation 0x%08X\n", func, target);
++    fflush(stderr);
++}
++
+ /* Watchdog: dump the guest call stack if the title stops making progress.
+  *
+  * A hang gives nothing to work from -- no crash, no last log line, no native
+@@ -1091,6 +1203,17 @@ BOOL xbox_MemoryLayoutInit(const void *xbe_data, size_t xbe_size)
+      */
+     {
+         static const uintptr_t try_bases[] = {
++#if defined(_M_IX86)
++            /* 32-bit host: guest address + offset wraps at 4 GB, so one base
++             * places every fixed window. With RAM at 0x20000000 the 0x80000000
++             * contiguous alias lands at 0xA0000000 (needs /LARGEADDRESSAWARE),
++             * and the tiled, NV2A, MCPX and flash windows at 0xF0000000-
++             * 0xFF100000 wrap to 0x10000000-0x1F100000 -- all clear of the
++             * image at 0x00400000 and of system DLLs. Only bases that keep
++             * that property are tried. */
++            0x20000000,
++            0x30000000,
++#endif
+             XBOX_BASE_ADDRESS,      /* 0x00010000 - original Xbox address */
+             0x00800000,             /* 8 MB - above typical PEB/TEB region */
+             0x01000000,             /* 16 MB */
+@@ -1763,7 +1886,15 @@ BOOL xbox_MemoryLayoutInit(const void *xbe_data, size_t xbe_size)
+         uint64_t tiled_lo = XBOX_TILED_BASE;
+         uint64_t tiled_hi = tiled_lo + xbox_TiledApertureSize();
+ 
+-        for (int m = 0; m < XBOX_NUM_MIRRORS; m++) {
++        /* A 32-bit host has no room for 1.8 GB of wrap mirrors next to the
++         * fixed windows and its own DLLs; three cover the first 256 MB, which
++         * is what the overrun this exists for actually reaches. */
++#if defined(_M_IX86)
++        const int mirror_count = XBOX_NUM_MIRRORS < 3 ? XBOX_NUM_MIRRORS : 3;
++#else
++        const int mirror_count = XBOX_NUM_MIRRORS;
++#endif
++        for (int m = 0; m < mirror_count; m++) {
+             uintptr_t mirror_base = (uintptr_t)g_memory_base +
+                                     (uintptr_t)(m + 1) * g_memory_size;
+             uint64_t guest_lo = (uint64_t)(m + 1) * g_memory_size;
+@@ -2142,48 +2273,144 @@ void xbox_FreeThreadStack(uint32_t stack_top)
+         g_thread_stacks_used--;
+ }
+ 
+-/* Bump allocator over the contiguous window mapped at XBOX_CONTIG_BASE.
++/* Allocator over the contiguous window mapped at XBOX_CONTIG_BASE.
+  *
+  * MmAllocateContiguousMemory hands back physical memory, and on Xbox physical
+  * page P is visible at 0x80000000 + P. Drivers rely on that being an exact
+  * round trip: Xbox D3D writes its pushbuffer position to the NV2A as
+  * `VA & 0x0FFFFFFF` and reads the GPU's position back as `GET | 0x80000000`,
+  * then compares the two. That holds for any address in this window and for
+- * nothing in the general heap, whose position depends on what the title
+- * reserved first -- Half-Life 2 reserves 128 MB and then 200 MB before D3D
+- * allocates its pushbuffer, which put the buffer at 0x15782000 and left the
+- * engine comparing 0x857844C0 against it forever.
++ * nothing in the general heap.
++ *
++ * XBOX_GPU_INSTANCE_DEFAULT is carved off the top by the GPU-instance bridge.
++ *
++ * This used to be a bump allocator on the theory that contiguous blocks are
++ * framebuffers and pushbuffers, allocated once. They are not: XPhysicalAlloc
++ * is contiguous, and D3D textures, surfaces and vertex buffers come from it.
++ * Clone Wars allocates and frees level and menu textures all game long, and
++ * with frees going nowhere the window filled after ~40 minutes; surface
++ * creation then failed ("Error creating surface") and the title stalled.
+  *
+- * Grows up from the base; XBOX_GPU_INSTANCE_DEFAULT is carved off the top by
+- * the GPU-instance bridge, so the two do not meet until the window is full.
+- * Never freed: contiguous blocks are framebuffers and pushbuffers, which a
+- * title allocates once. */
++ * Blocks are kept in an address-sorted table; allocation is first fit over
++ * the gaps, free removes the entry. g_contig_next is the high-water mark
++ * (xbox_ContiguousAllocatedBytes: "is this physical address in the window").
++ */
++#define CONTIG_MAX_BLOCKS 16384
++static struct { uint32_t start, size, caller; } g_contig_blocks[CONTIG_MAX_BLOCKS];
++uint32_t g_contig_alloc_caller;   /* set by the kernel bridge before an allocation */
++static int g_contig_count;
+ static uint32_t g_contig_next = XBOX_CONTIG_BASE;
++static SRWLOCK g_contig_lock = SRWLOCK_INIT;
+ 
+ uint32_t xbox_ContiguousAlloc(uint32_t size, uint32_t alignment)
+ {
+-    uint32_t result;
++    uint32_t limit = XBOX_CONTIG_BASE + XBOX_CONTIG_SIZE - XBOX_GPU_INSTANCE_DEFAULT;
++    uint32_t cursor = XBOX_CONTIG_BASE, result = 0, used = 0;
++    int i, at = -1;
+ 
+     if (alignment < 4096) alignment = 4096;
+-    result = (g_contig_next + alignment - 1) & ~(alignment - 1);
+-
+-    /* Leave the top of the window for GPU instance memory. */
+-    if ((uint64_t)result + size >
+-            (uint64_t)XBOX_CONTIG_BASE + XBOX_CONTIG_SIZE
+-                - XBOX_GPU_INSTANCE_DEFAULT) {
+-        fprintf(stderr, "  [CONTIG] arena exhausted (%u requested, %u of %u used)\n",
+-                size, g_contig_next - XBOX_CONTIG_BASE,
+-                (unsigned)XBOX_CONTIG_SIZE);
++    if (!size) size = 1;
++    size = (size + 4095u) & ~4095u;
++
++    AcquireSRWLockExclusive(&g_contig_lock);
++    for (i = 0; i <= g_contig_count; i++) {
++        uint32_t gap_end = i < g_contig_count ? g_contig_blocks[i].start : limit;
++        uint32_t cand = (cursor + alignment - 1) & ~(alignment - 1);
++        if ((uint64_t)cand + size <= gap_end) { result = cand; at = i; break; }
++        if (i < g_contig_count)
++            cursor = g_contig_blocks[i].start + g_contig_blocks[i].size;
++    }
++    if (!result || g_contig_count >= CONTIG_MAX_BLOCKS) {
++        for (i = 0; i < g_contig_count; i++) used += g_contig_blocks[i].size;
++        ReleaseSRWLockExclusive(&g_contig_lock);
++        fprintf(stderr, "  [CONTIG] arena exhausted (%u requested, %u in use in %d blocks)\n",
++                size, used, g_contig_count);
+         fflush(stderr);
+         return 0;
+     }
++    memmove(&g_contig_blocks[at + 1], &g_contig_blocks[at],
++            (size_t)(g_contig_count - at) * sizeof g_contig_blocks[0]);
++    g_contig_blocks[at].start = result;
++    g_contig_blocks[at].size = size;
++    g_contig_blocks[at].caller = g_contig_alloc_caller;
++    g_contig_count++;
++    if (result + size > g_contig_next)
++        g_contig_next = result + size;
++    ReleaseSRWLockExclusive(&g_contig_lock);
+ 
+-    g_contig_next = result + size;
+     memset((void *)((uintptr_t)result + g_memory_offset), 0, size);
+     return result;
+ }
+ 
+-/* How much of the window has been handed out.
++/* Returns 1 if xbox_va was a contiguous block (and frees it). Accepts the
++ * physical form (below 0x80000000) too. */
++int xbox_ContiguousFree(uint32_t xbox_va)
++{
++    int lo = 0, hi, found = -1;
++    if (xbox_va < XBOX_CONTIG_BASE && xbox_va < XBOX_CONTIG_SIZE)
++        xbox_va += XBOX_CONTIG_BASE;
++    if (xbox_va < XBOX_CONTIG_BASE || xbox_va >= XBOX_CONTIG_BASE + XBOX_CONTIG_SIZE)
++        return 0;
++    AcquireSRWLockExclusive(&g_contig_lock);
++    hi = g_contig_count - 1;
++    while (lo <= hi) {
++        int mid = (lo + hi) / 2;
++        if (g_contig_blocks[mid].start == xbox_va) { found = mid; break; }
++        if (g_contig_blocks[mid].start < xbox_va) lo = mid + 1; else hi = mid - 1;
++    }
++    if (found >= 0) {
++        memmove(&g_contig_blocks[found], &g_contig_blocks[found + 1],
++                (size_t)(g_contig_count - found - 1) * sizeof g_contig_blocks[0]);
++        g_contig_count--;
++    }
++    ReleaseSRWLockExclusive(&g_contig_lock);
++    return found >= 0;
++}
++
++/* Outstanding blocks grouped by allocating call site and size (diagnostic). */
++void xbox_ContiguousReport(void)
++{
++    struct { uint32_t caller, size, n; } g[256];
++    int ng = 0, i, k;
++    AcquireSRWLockShared(&g_contig_lock);
++    for (i = 0; i < g_contig_count; i++) {
++        for (k = 0; k < ng; k++)
++            if (g[k].caller == g_contig_blocks[i].caller && g[k].size == g_contig_blocks[i].size) break;
++        if (k == ng) { if (ng == 256) continue; g[ng].caller = g_contig_blocks[i].caller; g[ng].size = g_contig_blocks[i].size; g[ng].n = 0; ng++; }
++        g[k].n++;
++    }
++    ReleaseSRWLockShared(&g_contig_lock);
++    fprintf(stderr, "  [CONTIG] %d blocks outstanding:\n", g_contig_count);
++    for (k = 0; k < ng; k++)
++        if (g[k].n * g[k].size >= 65536)
++            fprintf(stderr, "  [CONTIG]   caller %08X size %u x%u\n", g[k].caller, g[k].size, g[k].n);
++    fflush(stderr);
++}
++
++/* Bytes currently allocated in the window. */
++uint32_t xbox_ContiguousInUse(void)
++{
++    int i;
++    uint32_t used = 0;
++    AcquireSRWLockShared(&g_contig_lock);
++    for (i = 0; i < g_contig_count; i++) used += g_contig_blocks[i].size;
++    ReleaseSRWLockShared(&g_contig_lock);
++    return used;
++}
++
++/* Size of a contiguous block, 0 if xbox_va is not the start of one. */
++uint32_t xbox_ContiguousBlockSize(uint32_t xbox_va)
++{
++    int i;
++    uint32_t r = 0;
++    AcquireSRWLockShared(&g_contig_lock);
++    for (i = 0; i < g_contig_count; i++)
++        if (g_contig_blocks[i].start == xbox_va) { r = g_contig_blocks[i].size; break; }
++    ReleaseSRWLockShared(&g_contig_lock);
++    return r;
++}
++
++/* How much of the window has ever been handed out (high-water mark).
+  *
+  * Lets a caller holding a physical address decide whether it names contiguous
+  * memory this runtime allocated. The pushbuffer executor needs exactly that:
+diff --git a/src/kernel/xbox_memory_layout.h b/src/kernel/xbox_memory_layout.h
+index 2552e5f..0596e95 100644
+--- a/src/kernel/xbox_memory_layout.h
++++ b/src/kernel/xbox_memory_layout.h
+@@ -188,6 +188,8 @@ uint32_t xbox_GetDisplayFramebuffer(uint32_t *pitch);
+  * below 256 MB, or 0 when the arena is exhausted. */
+ uint32_t xbox_ContiguousAlloc(uint32_t size, uint32_t alignment);
+ uint32_t xbox_ContiguousAllocatedBytes(void);
++int      xbox_ContiguousFree(uint32_t xbox_va);
++uint32_t xbox_ContiguousBlockSize(uint32_t xbox_va);
+ 
+ int xbox_Nv2aMirrorFence(uint32_t device_ptr_va,
+                          uint32_t put_off, uint32_t get_ptr_off);
+diff --git a/src/nv2a/nv2a_mmio_hook.c b/src/nv2a/nv2a_mmio_hook.c
+index d2b401d..5ee4955 100644
+--- a/src/nv2a/nv2a_mmio_hook.c
++++ b/src/nv2a/nv2a_mmio_hook.c
+@@ -35,6 +35,8 @@ static int g_mmio_decode_fail = 0;
+  * ============================================================ */
+ 
+ /* Map ModRM reg field (+ REX.R) to CONTEXT register pointer */
++/* x64 register decoding; a 32-bit host has no trap path here. */
++#if defined(_WIN64)
+ static uint64_t *ctx_reg64(PCONTEXT ctx, int reg)
+ {
+     switch (reg & 0xF) {
+@@ -362,6 +364,8 @@ static bool decode_and_handle(PCONTEXT ctx, uint32_t mmio_offset, int is_write)
+     return false;
+ }
+ 
++#endif /* _WIN64 */
++
+ /* ============================================================
+  * Public API
+  * ============================================================ */
+@@ -395,7 +399,12 @@ bool nv2a_hook_handle_mmio(PCONTEXT ctx, uintptr_t fault_addr,
+     /* Compute MMIO offset within NV2A register space */
+     uint32_t mmio_offset = fault_xbox_va - NV2A_MMIO_BASE;
+ 
++#if defined(_WIN64)
+     return decode_and_handle(ctx, mmio_offset, is_write);
++#else
++    (void)ctx; (void)mmio_offset; (void)is_write;
++    return false;
++#endif
+ }
+ 
+ bool nv2a_hook_handle_vram(uintptr_t fault_addr, uint32_t fault_xbox_va)
+diff --git a/src/platform/mmio_decode.h b/src/platform/mmio_decode.h
+index c0dd9e0..9a374dd 100644
+--- a/src/platform/mmio_decode.h
++++ b/src/platform/mmio_decode.h
+@@ -28,7 +28,7 @@
+ 
+ #include <stdint.h>
+ 
+-#if defined(_WIN32)
++#if defined(_WIN32) && defined(_WIN64)
+ #include <windows.h>
+ 
+ /* Service one register access. dev is passed straight back to the callbacks. */
+@@ -202,5 +202,17 @@ static inline int mmio_emulate(PCONTEXT ctx, uint32_t off, void *dev,
+     }
+ }
+ 
++#elif defined(_WIN32)
++/* 32-bit host: the decoder above reads x64 register state. No trap path;
++ * a device access that faults stays unhandled. */
++#include <windows.h>
++typedef uint64_t (*mmio_read_fn)(void *dev, uint32_t off, int size);
++typedef void     (*mmio_write_fn)(void *dev, uint32_t off, uint64_t val, int size);
++static inline int mmio_emulate(PCONTEXT ctx, uint32_t off, void *dev,
++                               mmio_read_fn rd, mmio_write_fn wr)
++{
++    (void)ctx; (void)off; (void)dev; (void)rd; (void)wr;
++    return 0;
++}
+ #endif /* _WIN32 */
+ #endif /* MMIO_DECODE_H */
+diff --git a/src/usb/ohci.c b/src/usb/ohci.c
+index dfc0566..7df65d8 100644
+--- a/src/usb/ohci.c
++++ b/src/usb/ohci.c
+@@ -803,7 +803,11 @@ int xbox_OhciHandleMmio(void *ctx, uint32_t xbox_va)
+     ok = mmio_emulate((PCONTEXT)ctx, xbox_va - hc->base, hc,
+                       ohci_read, ohci_write);
+     if (!ok && hc->decode_fail++ < 20) {
++#if defined(_WIN64)
+         const uint8_t *ip = (const uint8_t *)((PCONTEXT)ctx)->Rip;
++#else
++        const uint8_t *ip = (const uint8_t *)(uintptr_t)((PCONTEXT)ctx)->Eip;
++#endif
+         fprintf(stderr, "  [OHCI%d] undecoded access at +0x%03X: "
+                         "%02X %02X %02X %02X %02X %02X\n",
+                 hc->index, xbox_va - hc->base,
+diff --git a/templates/runtime/recomp_types.h b/templates/runtime/recomp_types.h
+index 75030f7..0d11d86 100644
+--- a/templates/runtime/recomp_types.h
++++ b/templates/runtime/recomp_types.h
+@@ -158,6 +158,12 @@ extern uint32_t g_xbox_code_hi;
+ extern RECOMP_TLS uint32_t g_eax, g_ecx, g_edx, g_esp;
+ extern RECOMP_TLS uint32_t g_ebx, g_esi, g_edi;
+ 
++/* Branch conditions handed across a function boundary: a function whose
++ * entry branches on flags its caller set (a tail-jump alias into the middle
++ * of a compare/branch pair, or the next piece of a split function) reads
++ * them here. Order: e s b be l le o p. */
++extern RECOMP_TLS int g_mc[8];
++
+ /* x87 stack. Per-thread for the same reason the integer registers are:
+  * arguments are passed in st(0)/st(1) across call boundaries. */
+ extern RECOMP_TLS double g_fp_stack[8];
+@@ -224,6 +230,16 @@ extern RECOMP_TLS uint32_t g_seh_ebp;
+ #include <setjmp.h>
+ jmp_buf *recomp_setjmp_slot(uint32_t buf_va);
+ int recomp_guest_longjmp(uint32_t buf_va, uint32_t value);
++/* C++ exception continuations: see recomp_eh_bind in xbox_memory_layout.c.
++ * A function that owns a try block setjmps on entry, binds the buffer to its
++ * registration node, and resumes at the continuation label when
++ * _JumpToContinuation longjmps back to it. */
++void recomp_eh_bind(uint32_t frame, jmp_buf *native, uint32_t lo, uint32_t hi);
++void recomp_eh_unbind(jmp_buf *native);
++int recomp_eh_continue(uint32_t target, uint32_t frame);
++uint32_t recomp_eh_resume_ebp(void);
++uint32_t recomp_eh_resume_target(void);
++void recomp_eh_bad_continuation(uint32_t func, uint32_t target);
+ extern RECOMP_TLS uint32_t g_ebp;
+ 
+ /* EFLAGS.DF, and the signed step the string instructions take because of it.
+@@ -264,6 +280,17 @@ static inline uint16_t recomp_fxam(double value) {
+  * followed by `test ah, 0x44; jp` is how this era's CRT asks "is this a NaN",
+  * and collapsing it to "equal" answers no every time. */
+ #define RECOMP_FCMP(a, b)     (((a) != (a) || (b) != (b)) ? 2 : (a) < (b) ? -1 : (a) > (b) ? 1 : 0)
++/* frndint rounds by the guest RC bits too. The CRT's floor/ceil set RC to
++ * down/up and then frndint; rounding to nearest regardless made floor(2.7)
++ * come out as 3. */
++static inline double recomp_frndint(double value, uint16_t control) {
++    switch ((control >> 10) & 3) {
++    case 1: return floor(value);
++    case 2: return ceil(value);
++    case 3: return trunc(value);
++    default: return nearbyint(value);   /* host default: to nearest, ties even */
++    }
++}
+ /* x87 integer stores use the guest RC bits, independently of host rounding.
+  * Masked invalid conversions store the signed integer-indefinite value. */
+ static inline int64_t recomp_fist(double value, uint16_t control, unsigned bits) {
+diff --git a/tools/recomp/lifter.py b/tools/recomp/lifter.py
+index d788d9f..d57d2fe 100644
+--- a/tools/recomp/lifter.py
++++ b/tools/recomp/lifter.py
+@@ -432,11 +432,128 @@ _EFLAGS_PRESERVE = frozenset({
+ })
+ 
+ 
++# Flag state at a join whose predecessors set flags with different
++# instructions (`sub eax, x` on entry, `dec eax` on the back edge). flag_ops
++# then holds each predecessor's (setter, operands); see _make_condition.
++MERGED_FLAGS = "__merged__"
++
++# Flag state at a join whose predecessors disagree, resolved by
++# materialisation: every predecessor stores the conditions below into
++# _mc_<key> just before it transfers control (see translator), and the join
++# reads those. flag_ops is the tuple of keys every predecessor could supply.
++MAT_FLAGS = "__mat__"
++MAT_KEYS = {"e": "je", "s": "js", "b": "jb", "be": "jbe",
++            "l": "jl", "le": "jle", "o": "jo", "p": "jp"}
++_MAT_USE = {
++    "je": ("e", False), "jz": ("e", False), "jne": ("e", True), "jnz": ("e", True),
++    "js": ("s", False), "jns": ("s", True),
++    "jb": ("b", False), "jc": ("b", False), "jnae": ("b", False),
++    "jae": ("b", True), "jnb": ("b", True), "jnc": ("b", True),
++    "jbe": ("be", False), "jna": ("be", False), "ja": ("be", True), "jnbe": ("be", True),
++    "jl": ("l", False), "jnge": ("l", False), "jge": ("l", True), "jnl": ("l", True),
++    "jle": ("le", False), "jng": ("le", False), "jg": ("le", True), "jnle": ("le", True),
++    "jo": ("o", False), "jno": ("o", True),
++    "jp": ("p", False), "jpe": ("p", False), "jnp": ("p", True), "jpo": ("p", True),
++}
++
++
++MAT_INDEX = {k: i for i, k in enumerate(MAT_KEYS)}
++_FLAG_READERS = ("adc", "sbb", "rcl", "rcr", "pushfd", "pushf", "lahf")
++
++
++def consumes_flags_first(instructions):
++    """True when the first flag access in `instructions` is a read.
++
++    Stops at the first flag setter, and at anything that leaves the straight
++    line (a call, ret, or unconditional jump), since past that the flags are
++    no longer the entry's.
++    """
++    for insn in instructions:
++        m = insn.mnemonic
++        if m in ("jecxz", "jcxz", "loop"):
++            continue
++        if (insn.is_cond_jump or m.startswith("set") or m.startswith("cmov")
++                or m in _FLAG_READERS or m in ("loope", "loopne", "loopz", "loopnz")):
++            return True
++        if m in FLAG_SETTERS or m in _EFLAGS_SETTERS or m in _FLAGS_UNDEFINED:
++            return False
++        if insn.is_call or insn.is_ret or m == "jmp":
++            return False
++    return False
++
++
++def handoff_saves(state, allow_cf=True):
++    """C statements storing `state`'s conditions into g_mc for a callee."""
++    exprs = materialized_conditions(state, allow_cf)
++    if not exprs:
++        return []
++    return [" ".join(f"g_mc[{MAT_INDEX[k]}] = {exprs[k]};" for k in MAT_KEYS if k in exprs)
++            + " /* flags handed to the next function */"]
++
++
++def materialized_conditions(state, allow_cf=True):
++    """{key: C expression} for each MAT_KEYS condition `state` can express.
++
++    With allow_cf False, conditions read from the tracked `_cf` are left out:
++    a function that does not consume CF neither declares nor maintains it.
++    """
++    if not state or not state[0]:
++        return {}
++    setter, ops = state
++    out = {}
++    for key, jcc in MAT_KEYS.items():
++        r = _make_condition(jcc, setter, ops)
++        if r and (allow_cf or not re.search(r"\b_cf\b", r[0])):
++            out[key] = r[0]
++    return out
++
++
+ def _make_condition(jcc, flag_setter, flag_ops):
+     """
+     Generate a C condition expression for a jcc based on what set the flags.
+     Returns (cond_expr, description) or None.
+     """
++    # A join of different setters is exact whenever every predecessor yields
++    # the same expression for this condition -- ZF of `sub eax, x` and of
++    # `dec eax` are both `eax == 0` -- because whichever path ran, the
++    # expression reads the same live state. Anything path-dependent differs
++    # textually and falls back as before.
++    if flag_setter == MAT_FLAGS:
++        use = _MAT_USE.get(jcc)
++        if not use or use[0] not in flag_ops:
++            return None
++        key, negate = use
++        expr = f"(!_mc_{key})" if negate else f"(_mc_{key})"
++        return expr, f"{jcc} (saved by each predecessor)"
++
++    if flag_setter == MERGED_FLAGS:
++        results = [_make_condition(jcc, s, o) for s, o in flag_ops]
++        if results and all(r and r[0] == results[0][0] for r in results):
++            return results[0]
++        # ZF and SF of these depend only on the result, which each leaves in
++        # its destination. When every path wrote the same register, read it:
++        # dec snapshots into _fa while sub reconstructs from the register, so
++        # the texts differ although the flags agree.
++        result_ops = ("sub", "add", "adc", "sbb", "and", "or", "xor",
++                      "inc", "dec", "neg")
++        dests = set()
++        for setter, ops in flag_ops:
++            if setter not in result_ops or not ops or ops[0].type != "reg":
++                return None
++            dests.add((_fmt_operand_read(ops[0]), _operand_width(ops[0])))
++        if len(dests) != 1:
++            return None
++        reg, width = dests.pop()
++        cast = {1: "(int8_t)", 2: "(int16_t)"}.get(width, "(int32_t)")
++        forms = {
++            "je": f"({reg} == 0)", "jz": f"({reg} == 0)",
++            "jne": f"({reg} != 0)", "jnz": f"({reg} != 0)",
++            "js": f"({cast}({reg}) < 0)", "jns": f"({cast}({reg}) >= 0)",
++        }
++        if jcc in forms:
++            return forms[jcc], f"{jcc} (joined result flags)"
++        return None
++
+     cond_info = COND_MAP.get(jcc)
+     if not cond_info:
+         return None
+@@ -926,6 +1043,43 @@ _SEH_PROLOG_MAX_SIZE = 128
+ _SEH_EPILOG_MAX_SIZE = 64
+ 
+ 
++# MSVC's C++ _EH_prolog does the same job for functions with try/catch or
++# destructible locals: it is called with the handler in eax and leaves ebp
++# pointing at the caller's new frame.
++#
++#   _EH_prolog     push -1; push eax; mov eax, fs:[0]   6A FF 50 64 A1 00 00 00 00
++#                  lea ebp, [esp+0xc]                   8D 6C 24 0C
++#
++# Missing it left every such function addressing its arguments and locals
++# through the caller's ebp. Clone Wars' operator new read its size from the
++# caller's frame, allocated a 1-byte block for a 28-byte object, and the
++# object's fields overwrote the next heap header.
++_EH_PROLOG_MARKERS = (b"\x6a\xff\x50\x64\xa1\x00\x00\x00\x00", b"\x8d\x6c\x24\x0c")
++
++
++def detect_eh_prolog(func_db, xbe_data):
++    """Locate the C++ _EH_prolog helper, or None."""
++    from .config import va_to_file_offset
++    for addr in sorted(func_db):
++        info = func_db[addr]
++        end = info.get("end")
++        if isinstance(end, str):
++            try:
++                end = int(end, 16)
++            except ValueError:
++                end = None
++        size = (end - addr) if isinstance(end, int) else int(info.get("size") or 0)
++        if size <= 0 or size > 64:
++            continue
++        offset = va_to_file_offset(addr)
++        if offset is None or xbe_data is None or offset + size > len(xbe_data):
++            continue
++        body = xbe_data[offset:offset + size]
++        if body.startswith(_EH_PROLOG_MARKERS[0]) and _EH_PROLOG_MARKERS[1] in body:
++            return addr
++    return None
++
++
+ def detect_seh_helpers(func_db, xbe_data, verbose=False):
+     """Locate __SEH_prolog / __SEH_epilog in the target binary.
+ 
+@@ -1038,6 +1192,121 @@ def detect_setjmp_helpers(func_db, xbe_data, verbose=False):
+     return found.get("setjmp"), found.get("longjmp")
+ 
+ 
++# MSVC C++ exception handling, as it reaches a catch.
++#
++# A function with a try block registers `push <thunk>; mov eax, fs:[0]` where
++# the thunk is `mov eax, <FuncInfo>; jmp __CxxFrameHandler`. When a catch runs,
++# its funclet returns the address to resume at (`mov eax, <cont>; ret`), and
++# _JumpToContinuation jumps there -- into the middle of the owning function,
++# which is a separate C function far up the native stack. That needs a native
++# longjmp back into the owner and a label to resume at, and the label usually
++# does not exist: nothing branches to a catch continuation, the try body just
++# falls into it. So both are found here from the FuncInfo tables.
++#
++#   _JumpToContinuation   mov esp, [ebx-4] ; mov ebp, [ebp-4] ; jmp eax
++_EH_MAGIC_MASK = 0x1FFFFFFF
++_EH_MAGIC_BASE = 0x19930520
++_JUMP_TO_CONT_MARKER = bytes.fromhex("8b63fc8b6dfcffe0")
++
++
++def detect_cxx_eh(func_db, xbe_data, verbose=False):
++    """Find try/catch owners, their catch continuations and _JumpToContinuation.
++
++    Returns (continuations, jump_to_continuation) where continuations maps an
++    owner function's start address to the set of addresses its catches resume
++    at. Either may be empty/None: a title with no try/catch has neither.
++    """
++    from .config import va_to_file_offset
++    import capstone
++
++    if not xbe_data:
++        return {}, None
++
++    def read(va, n):
++        off = va_to_file_offset(va)
++        if off is None or off + n > len(xbe_data):
++            return None
++        return xbe_data[off:off + n]
++
++    def u32(va):
++        b = read(va, 4)
++        return struct.unpack("<I", b)[0] if b else None
++
++    def bounds(addr):
++        info = func_db[addr]
++        end = info.get("end")
++        if isinstance(end, str):
++            try:
++                end = int(end, 16)
++            except ValueError:
++                end = None
++        if not isinstance(end, int):
++            end = addr + int(info.get("size", 0) or 0)
++        return end
++
++    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
++
++    def continuation(funclet):
++        code = read(funclet, 0x400)
++        if not code:
++            return None
++        prev = None
++        for insn in md.disasm(code, funclet):
++            if insn.mnemonic == "ret":
++                if (prev is not None and prev.mnemonic == "mov"
++                        and prev.op_str.startswith("eax, 0x")):
++                    return int(prev.op_str.split(", ")[1], 16)
++                return None
++            if insn.mnemonic in ("jmp", "int3"):
++                return None           # a rethrow, or not a simple funclet
++            prev = insn
++        return None
++
++    conts = {}
++    jump_to_cont = None
++    # push imm32 ; mov eax, fs:[0]
++    reg_pat = re.compile(rb"\x68(....)\x64\xA1\x00\x00\x00\x00", re.S)
++    for addr in sorted(func_db):
++        end = bounds(addr)
++        size = end - addr
++        if size <= 0 or size > 0x20000:
++            continue
++        body = read(addr, size)
++        if not body:
++            continue
++        if jump_to_cont is None and size <= 64 and _JUMP_TO_CONT_MARKER in body:
++            jump_to_cont = addr
++        for m in reg_pat.finditer(body):
++            thunk = struct.unpack("<I", m.group(1))[0]
++            tb = read(thunk, 10)
++            if not tb or tb[0] != 0xB8 or tb[5] != 0xE9:
++                continue
++            fi = struct.unpack("<I", tb[1:5])[0]
++            magic = u32(fi)
++            if magic is None or (magic & _EH_MAGIC_MASK) - _EH_MAGIC_BASE not in (0, 1, 2):
++                continue
++            n_try, try_map = u32(fi + 12), u32(fi + 16)
++            if not n_try or n_try > 64 or try_map is None:
++                continue
++            for t in range(n_try):
++                n_catch = u32(try_map + t * 20 + 12) or 0
++                harr = u32(try_map + t * 20 + 16) or 0
++                for c in range(min(n_catch, 32)):
++                    funclet = u32(harr + c * 16 + 12)
++                    target = continuation(funclet) if funclet else None
++                    if target is not None and addr <= target < end:
++                        conts.setdefault(addr, set()).add(target)
++
++    if verbose:
++        import sys
++        n = sum(len(v) for v in conts.values())
++        print(f"  C++ EH: {len(conts)} try/catch owners, {n} continuations, "
++              f"_JumpToContinuation "
++              f"{('0x%08X' % jump_to_cont) if jump_to_cont else 'not found'}",
++              file=sys.stderr)
++    return conts, jump_to_cont
++
++
+ class Lifter:
+     """Translates x86 instructions to C statements."""
+ 
+@@ -1085,6 +1354,8 @@ class Lifter:
+             seh_epilog = seh_epilog if seh_epilog is not None else found_epilog
+         self.SEH_PROLOG = seh_prolog
+         self.SEH_EPILOG = seh_epilog
++        self.EH_PROLOG = (detect_eh_prolog(self.func_db, xbe_data)
++                          if self.func_db else None)
+         self.SETJMP_FN = setjmp_fn
+         self.LONGJMP_FN = longjmp_fn
+         self.jump_table_targets = {}
+@@ -1906,6 +2177,12 @@ class Lifter:
+     # callers that construct a Lifter without a function database.
+     SEH_PROLOG = None
+     SEH_EPILOG = None
++    EH_PROLOG = None
++
++    def frame_helpers(self):
++        """Helpers that exchange the frame pointer through g_seh_ebp."""
++        return tuple(a for a in (self.SEH_PROLOG, self.SEH_EPILOG, self.EH_PROLOG)
++                     if a is not None)
+ 
+     # The CRT's setjmp/longjmp, detected by detect_setjmp_helpers().
+     SETJMP_FN = None
+@@ -2008,7 +2285,7 @@ class Lifter:
+             # stack address where the caller had just zeroed it, so an
+             # "if (status < 0)" test against esi failed and XapiInitProcess
+             # bailed to the dashboard.
+-            if insn.call_target in (self.SEH_PROLOG, self.SEH_EPILOG):
++            if insn.call_target in self.frame_helpers():
+                 lines.insert(0, "g_seh_ebp = ebp; /* publish frame to SEH helper */")
+                 lines.append("ebp = g_seh_ebp; /* read back frame from SEH helper */")
+             return lines
+@@ -2034,7 +2311,7 @@ class Lifter:
+         # If this function IS __SEH_prolog or __SEH_epilog, bridge ebp
+         # so the caller can read back the frame pointer.
+         prefix = ""
+-        if self.func_start in (self.SEH_PROLOG, self.SEH_EPILOG):
++        if self.func_start in self.frame_helpers():
+             prefix = "g_seh_ebp = ebp; "
+         # Exit trace, for functions that return with a register the caller
+         # relied on holding something else. Entry tracing alone cannot show
+@@ -2068,6 +2345,11 @@ class Lifter:
+             if o + 4 > len(self.xbe_data):
+                 break
+             val = struct.unpack_from('<I', self.xbe_data, o)[0]
++            # A table indexed from 1 keeps a zero in slot 0 -- the XNET
++            # checksum's jump into its unrolled adc chain is exactly that --
++            # so an unusable slot 0 is skipped rather than ending the table.
++            if i == 0 and not is_code_address(val):
++                continue
+             if not is_code_address(val):
+                 break
+             targets.append(val)
+@@ -2106,11 +2388,24 @@ class Lifter:
+         # 0x005BA617 has 8 real arms followed by code; the old rule resolved
+         # none of them, the indexed jump became an unresolvable indirect call,
+         # and sprintf silently produced the wrong string.
++        #
++        # An arm that is the start of another known function is part of the
++        # table too: a function the analysis split at a case label (or a case
++        # seeded as a function) is reached through the dispatch table, so it
++        # is skipped here and left to the RECOMP_ITAIL fallback, and the scan
++        # goes on. Only an entry that is neither ends the table. In-function
++        # arms must also be instruction starts, or the goto has no label.
++        insn_addrs = getattr(self, "insn_addrs", None)
+         inside = []
+         for target in targets:
+-            if not (self.func_start <= target < self.func_end):
++            if self.func_start <= target < self.func_end:
++                if insn_addrs is not None and target not in insn_addrs:
++                    break
++                inside.append(target)
++            elif target in self.func_db:
++                continue
++            else:
+                 break
+-            inside.append(target)
+         # Two arms is the smallest thing worth calling a switch; one is more
+         # likely a coincidence than a jump table.
+         if len(inside) >= 2:
+@@ -3114,7 +3409,7 @@ class Lifter:
+         if m == "fscale":
+             return [f"fp_top() = ldexp(fp_top(), (int)fp_st1()); /* fscale */"]
+         if m == "frndint":
+-            return [f"fp_top() = rint(fp_top()); /* frndint */"]
++            return [f"fp_top() = recomp_frndint(fp_top(), g_fp_control_word); /* frndint */"]
+         if m == "fldpi":
+             return [f"fp_push(3.14159265358979323846); /* fldpi */"]
+         if m == "fldl2e":
+@@ -3276,6 +3571,15 @@ def lift_basic_block(lifter, bb, flag_state=None):
+             i += consumed
+             continue
+ 
++        # A transfer to a function that branches on our flags before setting
++        # its own: hand them over (see g_mc in recomp_types.h).
++        handoff = getattr(lifter, "flag_handoff_target", None)
++        if (handoff and last_flag_setter and curr.jump_target
++                and (curr.is_call or curr.mnemonic == "jmp" or curr.is_cond_jump)
++                and handoff(curr.jump_target)):
++            stmts.extend(handoff_saves((last_flag_setter, last_flag_ops),
++                                       getattr(lifter, "needs_cf", True)))
++
+         # Handle jecxz/jcxz specially (not flag-based)
+         if curr.mnemonic in ("jecxz", "jcxz"):
+             results = lifter._lift_jcc(curr)
+diff --git a/tools/recomp/test_flag_join.py b/tools/recomp/test_flag_join.py
+index 74a9e84..646e11b 100644
+--- a/tools/recomp/test_flag_join.py
++++ b/tools/recomp/test_flag_join.py
+@@ -37,3 +37,15 @@ def test_mixed_widths_are_not_guessed():
+     wide = [Operand(type='reg', reg='eax'), Operand(type='reg', reg='edx')]
+     narrow = [Operand(type='reg', reg='al'), Operand(type='reg', reg='dl')]
+     assert _merge_flag_states([('cmp', wide), ('cmp', narrow)]) is None
++
++def test_sub_and_dec_join_reads_the_register():
++    # mov eax,[ebp+0x20]... simplified: sub eax,ecx; L: jz out; dec eax; jmp L; out: ret
++    image = bytes.fromhex('29c8' '7403' '48' 'ebfb' 'c3')
++    config._install([config.Section('.text', BASE, len(image), 0, len(image), True)],
++                    entry_point=BASE, kernel_thunk_addr=BASE,
++                    origin='flag-join-test')
++    db = {BASE: {'start': hex(BASE), 'end': BASE + len(image),
++                 '_addr': BASE, 'size': len(image)}}
++    code = FunctionTranslator(image, db).translate_function(BASE, db[BASE])
++    assert '(eax == 0)' in code, code
++    assert '_flags /* je' not in code, code
+diff --git a/tools/recomp/translator.py b/tools/recomp/translator.py
+index 48dda04..37a05ad 100644
+--- a/tools/recomp/translator.py
++++ b/tools/recomp/translator.py
+@@ -23,7 +23,10 @@ from .config import va_to_file_offset, is_code_address
+ from . import config as _config
+ from .disasm import Disassembler
+ from .lifter import (Lifter, lift_basic_block, detect_seh_helpers,
+-                     detect_setjmp_helpers, _func_ident, _operand_width)
++                     detect_setjmp_helpers, detect_cxx_eh, _func_ident,
++                     _operand_width, MERGED_FLAGS, MAT_FLAGS, MAT_KEYS,
++                     materialized_conditions, consumes_flags_first,
++                     handoff_saves)
+ 
+ 
+ def _merge_flag_states(states):
+@@ -39,15 +42,66 @@ def _merge_flag_states(states):
+     first = states[0]
+     if all(state == first for state in states[1:]):
+         return first
+-    if first[0] not in ("cmp", "test") or len(first[1]) != 2:
++    if _snapshot_merge_ok(states):
++        return first
++    # Joins between comparisons of different kinds or widths stay unknown:
++    # their snapshots would have to be reinterpreted per path.
++    if all(kind in ("cmp", "test") for kind, _ in states):
++        return None
++    # Different setters: keep them all, and let each consumer ask whether
++    # every path gives the same condition (lifter._make_condition).
++    parts = []
++    for kind, ops in states:
++        for part in (ops if kind == MERGED_FLAGS else [(kind, ops)]):
++            if part not in parts:
++                parts.append(part)
++    return (MERGED_FLAGS, parts)
++
++
++def _join_flag_states(states, origin=0, allow_cf=True):
++    """Incoming flags at a join: an agreed state, or else a materialised one.
++
++    When the predecessors' states cannot be read the same way, each of them
++    saves the conditions it can express into _mc_* just before transferring
++    control, and the join tests those (MAT_FLAGS). Only conditions every
++    predecessor can supply are offered; a consumer needing another one still
++    falls back as before.
++    """
++    merged = _merge_flag_states(states)
++    if merged is not None and merged[0] != MERGED_FLAGS:
++        return merged
++    if not states or any(not st or not st[0] for st in states):
++        return None
++    avail = None
++    for st in states:
++        keys = set(materialized_conditions(st, allow_cf))
++        avail = keys if avail is None else (avail & keys)
++    if not avail:
+         return None
++    # The join's address rides along so a consumer further down can say which
++    # join's predecessors have to save (see translate_function).
++    return (MAT_FLAGS, tuple(sorted(avail)) + (f"@{origin:08X}",))
++
++
++def _mat_origin(state):
++    if state and state[0] == MAT_FLAGS:
++        for tag in state[1]:
++            if isinstance(tag, str) and tag.startswith("@"):
++                return int(tag[1:], 16)
++    return None
++
++
++def _snapshot_merge_ok(states):
++    first = states[0]
++    if first[0] not in ("cmp", "test") or len(first[1]) != 2:
++        return False
+     width = _operand_width(first[1][0]) or _operand_width(first[1][1])
+     for kind, ops in states[1:]:
+         if kind != first[0] or len(ops) != 2:
+-            return None
++            return False
+         if (_operand_width(ops[0]) or _operand_width(ops[1])) != width:
+-            return None
+-    return first
++            return False
++    return True
+ 
+ 
+ def write_if_changed(path, text):
+@@ -419,11 +473,23 @@ class FunctionTranslator:
+                     if (insn.is_cond_jump and insn.jump_target is not None
+                         and original_end <= insn.jump_target < upper)
+                 }
+-                has_indexed_jump = any(
+-                    insn.is_jump and insn.jump_target is None
+-                    and insn.operands and insn.operands[0].type == "mem"
+-                    and insn.operands[0].mem_index
+-                    for insn in prefix)
++                indexed = [
++                    insn for insn in prefix
++                    if (insn.is_jump and insn.jump_target is None
++                        and insn.operands and insn.operands[0].type == "mem"
++                        and insn.operands[0].mem_index)]
++                has_indexed_jump = bool(indexed)
++                # A switch whose cases lie past the detected end reaches them
++                # only through its table -- Clone Wars' sub_00150106 has no
++                # conditional branch there at all -- so table entries in the
++                # gap bridge as well.
++                for insn in indexed:
++                    disp = insn.operands[0].mem_disp
++                    if not disp:
++                        continue
++                    for t in self.lifter._read_jump_table(disp):
++                        if original_end <= t < upper:
++                            bridges.add(t)
+                 if not bridges or not has_indexed_jump:
+                     continue
+ 
+@@ -551,6 +617,34 @@ class FunctionTranslator:
+         backward.reverse()
+         return backward + forward
+ 
++    def _entry_consumes_flags(self, addr):
++        """Does the function at `addr` branch on flags before setting any?
++
++        Such an entry is the second half of a compare/branch pair that the
++        function database split in two -- a tail-jump alias, or the next piece
++        of a function that falls through into it -- and its flags have to be
++        handed over by whoever transfers there.
++        """
++        cache = self.__dict__.setdefault("_entry_flags_cache", {})
++        if addr in cache:
++            return cache[addr]
++        result = False
++        info = self.func_db.get(addr)
++        if info is not None:
++            end = info.get("end") or (addr + info.get("size", 0))
++            if isinstance(end, str):
++                end = int(end, 16)
++            end = min(end, addr + 64)
++            raw = self._read_func_bytes(addr, end) if end > addr else None
++            if raw:
++                try:
++                    insns = self.disasm.disassemble_function(raw, addr, end)
++                except Exception:
++                    insns = None
++                result = bool(insns) and consumes_flags_first(insns)
++        cache[addr] = result
++        return result
++
+     def _read_func_bytes(self, start_va, end_va):
+         """Read raw bytes for a function from the XBE."""
+         offset = va_to_file_offset(start_va)
+@@ -628,10 +722,12 @@ class FunctionTranslator:
+         """
+         if self._func_has_prologue(instructions):
+             return True
+-        seh_prolog = getattr(self.lifter, "SEH_PROLOG", None)
+-        if seh_prolog is None:
++        prologs = {a for a in (getattr(self.lifter, "SEH_PROLOG", None),
++                               getattr(self.lifter, "EH_PROLOG", None))
++                   if a is not None}
++        if not prologs:
+             return False
+-        return any(getattr(insn, "call_target", None) == seh_prolog
++        return any(getattr(insn, "call_target", None) in prologs
+                    for insn in instructions)
+ 
+     def translate_function(self, func_addr, func_info):
+@@ -658,6 +754,9 @@ class FunctionTranslator:
+         # Set function bounds for the lifter
+         self.lifter.func_start = start
+         self.lifter.func_end = end
++        self.lifter.flag_handoff_target = (
++            lambda t, _s=start, _e=end: (not (_s <= t < _e)
++                                         and self._entry_consumes_flags(t)))
+         self.lifter.jump_table_targets = (
+             recovered["jump_tables"] if recovered else {})
+ 
+@@ -666,6 +765,7 @@ class FunctionTranslator:
+                         self.disasm.disassemble_function(raw_bytes, start, end))
+         if not instructions:
+             return None
++        self.lifter.insn_addrs = {insn.address for insn in instructions}
+ 
+         # Addresses this function loads as immediates into a register and
+         # then jumps to. `mov ebx, 0x3A0DC; ... ; jmp ebx` is a continuation
+@@ -689,8 +789,14 @@ class FunctionTranslator:
+                     imm_refs.add(value)
+         self.lifter.imm_code_refs = imm_refs
+ 
++        # Catch continuations this function resumes at. Nothing branches to
++        # them -- the try body falls in -- so without a leader they are
++        # mid-block and get no label for the resume switch to jump to.
++        eh_conts = sorted(t for t in getattr(self, "eh_continuations", {})
++                          .get(start, ()) if start <= t < end)
++
+         # Collect switch table targets as extra block leaders
+-        switch_leaders = set(imm_refs)
++        switch_leaders = set(imm_refs) | set(eh_conts)
+         for insn in instructions:
+             if insn.mnemonic == "jmp" and not insn.jump_target and insn.operands:
+                 targets = self.lifter._analyze_switch_table(insn.operands)
+@@ -787,8 +893,7 @@ class FunctionTranslator:
+         # hardcoded to one game's CRT here, so for every other title the forcing
+         # silently never fired and the generated C failed to compile with
+         # "'ebp': undeclared identifier".
+-        seh_funcs = {a for a in (self.lifter.SEH_PROLOG, self.lifter.SEH_EPILOG)
+-                     if a is not None}
++        seh_funcs = set(self.lifter.frame_helpers())
+         if seh_funcs and any(insn.call_target in seh_funcs
+                              for insn in instructions):
+             used_regs.add("ebp")
+@@ -888,6 +993,16 @@ class FunctionTranslator:
+             for insn in instructions)
+         if has_conditionals:
+             lines.append(f"    int _flags = 0; /* fallback flag var */")
++            lines.append("    int _mc_e = 0, _mc_s = 0, _mc_b = 0, _mc_be = 0,"
++                         " _mc_l = 0, _mc_le = 0, _mc_o = 0, _mc_p = 0;"
++                         " /* conditions saved for joins */")
++            lines.append("    (void)_mc_e; (void)_mc_s; (void)_mc_b; (void)_mc_be;"
++                         " (void)_mc_l; (void)_mc_le; (void)_mc_o; (void)_mc_p;")
++            if self._entry_consumes_flags(start):
++                lines.append("    _mc_e = g_mc[0]; _mc_s = g_mc[1]; _mc_b = g_mc[2];"
++                             " _mc_be = g_mc[3]; _mc_l = g_mc[4]; _mc_le = g_mc[5];"
++                             " _mc_o = g_mc[6]; _mc_p = g_mc[7];"
++                             " /* entry branches on the caller's flags */")
+ 
+         # Flag snapshot temporaries: a cmp/test records its operands here,
+         # zero- and sign-extended to the compare's own width, so the branch
+@@ -971,6 +1086,22 @@ class FunctionTranslator:
+         if frame_type == "fpo_leaf" and "ebp" in used_regs and not has_prologue:
+             lines.append(f"    ebp = g_seh_ebp; /* fpo_leaf: inherit caller's frame */")
+ 
++        # Owner of a try block: the native half of a catch continuation.
++        # _JumpToContinuation longjmps here (recomp_eh_continue) with esp
++        # already restored; ebp comes back through the runtime because a
++        # local changed after setjmp is indeterminate once longjmp lands.
++        if eh_conts:
++            lines.append(f"    jmp_buf _eh_jb; /* C++ try/catch owner */")
++            lines.append(f"    if (setjmp(_eh_jb)) {{")
++            lines.append(f"        ebp = recomp_eh_resume_ebp();")
++            lines.append(f"        switch (recomp_eh_resume_target()) {{")
++            for t in eh_conts:
++                lines.append(f"        case 0x{t:08X}u: goto loc_{t:08X};")
++            lines.append(f"        default: recomp_eh_bad_continuation(0x{start:08X}u, "
++                         f"recomp_eh_resume_target()); return;")
++            lines.append(f"        }}")
++            lines.append(f"    }}")
++
+         lines.append(f"")
+ 
+         # Generate code for each basic block
+@@ -984,6 +1115,7 @@ class FunctionTranslator:
+             if insn.jump_target and start <= insn.jump_target < end:
+                 label_addrs.add(insn.jump_target)
+         label_addrs |= imm_refs
++        label_addrs |= set(eh_conts)
+         # Add switch table targets (indirect jmp with intra-function table)
+         for insn in instructions:
+             if insn.mnemonic == "jmp" and not insn.jump_target and insn.operands:
+@@ -1010,6 +1142,99 @@ class FunctionTranslator:
+             if not leaves and i + 1 < len(blocks):
+                 preds[blocks[i + 1].start].add(bb.start)
+ 
++        # Flag state at the end of every block, solved to a fixed point before
++        # any code is emitted. Walking once in address order leaves a block
++        # whose predecessor sits further down the function -- a loop's back
++        # edge, or a shared tail reached by `jmp` from below -- with unknown
++        # incoming flags, and a conditional jump there lifted to the `_flags`
++        # fallback, which nothing ever sets: the branch was simply never
++        # taken. The game's allocator hit exactly that on `cmp edx, ecx; jmp
++        # L; ... L: jae`, and every free that merged blocks dragged its search
++        # anchor below the free space until 24 MB of heap was unreachable.
++        # lift_basic_block has no side effects beyond an idempotent call-name
++        # map, so repeating it is safe.
++        # An entry that branches on its caller's flags reads them from g_mc
++        # (copied into _mc_* in the preamble below).
++        entry_state = None
++        if self._entry_consumes_flags(start):
++            entry_state = (MAT_FLAGS, tuple(sorted(MAT_KEYS)) + (f"@{start:08X}",))
++
++        out_state = {}
++        for _pass in range(16):
++            changed = False
++            for bb in blocks:
++                sources = preds[bb.start]
++                if bb.start == start and entry_state is not None:
++                    if sources and all(p in out_state for p in sources):
++                        incoming = _join_flag_states(
++                            [entry_state] + [out_state[p] for p in sources], start,
++                            self.lifter.needs_cf)
++                    else:
++                        incoming = entry_state
++                elif bb.start == start or not sources:
++                    incoming = None
++                elif all(p in out_state for p in sources):
++                    incoming = _join_flag_states([out_state[p] for p in sources],
++                                                 bb.start, self.lifter.needs_cf)
++                else:
++                    incoming = None
++                _, st = lift_basic_block(self.lifter, bb, flag_state=incoming)
++                if bb.start not in out_state or out_state[bb.start] != st:
++                    out_state[bb.start] = st
++                    changed = True
++            if not changed:
++                break
++        solved_state = out_state
++
++        # Predecessors of a materialised join save the conditions it reads --
++        # but only for joins whose state some branch actually consumes, here
++        # or after flowing on unchanged through later blocks. Most joins
++        # never read their flags, and saving at all of them costs code.
++        def _incoming_for(bb):
++            sources = preds[bb.start]
++            if bb.start == start and entry_state is not None:
++                if sources and all(p in solved_state for p in sources):
++                    return _join_flag_states(
++                        [entry_state] + [solved_state[p] for p in sources], start,
++                        self.lifter.needs_cf)
++                return entry_state
++            if bb.start == start or not sources:
++                return None
++            if not all(p in solved_state for p in sources):
++                return None
++            return _join_flag_states([solved_state[p] for p in sources], bb.start,
++                                     self.lifter.needs_cf)
++
++        join_state = {}
++        needed = set()
++        for bb in blocks:
++            inc = _incoming_for(bb)
++            join_state[bb.start] = inc
++            origin = _mat_origin(inc)
++            if origin is None:
++                continue
++            body, _ = lift_basic_block(self.lifter, bb, flag_state=inc)
++            if any("_mc_" in st for st in body):
++                needed.add(origin)
++        # A needed join fed by another materialised state needs that one too:
++        # its predecessors pass the saved values along unchanged.
++        grew = True
++        while grew:
++            grew = False
++            for j in list(needed):
++                for p in preds.get(j, ()):
++                    o = _mat_origin(solved_state.get(p))
++                    if o is not None and o not in needed:
++                        needed.add(o)
++                        grew = True
++        mat_needed = {}
++        for j in needed:
++            inc = join_state.get(j)
++            if not inc or inc[0] != MAT_FLAGS:
++                continue
++            keys = [k for k in inc[1] if not k.startswith("@")]
++            for p in preds[j]:
++                mat_needed.setdefault(p, set()).update(keys)
+         out_state = {}
+         for bb in blocks:
+             # Emit label if this block is a branch target
+@@ -1027,16 +1252,29 @@ class FunctionTranslator:
+             # may not be computed yet -- treat that as unknown rather than
+             # guessing at which operation produced the runtime flags.
+             sources = preds[bb.start]
+-            if bb.start == start or not sources:
++            if bb.start == start and entry_state is not None:
++                incoming = join_state[bb.start]
++            elif bb.start == start or not sources:
+                 incoming = None
+-            elif all(p in out_state for p in sources):
+-                states = [out_state[p] for p in sources]
+-                incoming = _merge_flag_states(states)
++            elif all(p in solved_state for p in sources):
++                incoming = join_state[bb.start]
+             else:
+                 incoming = None
+ 
+             stmts, out_state[bb.start] = lift_basic_block(
+                 self.lifter, bb, flag_state=incoming)
++            if bb.start in mat_needed and bb.instructions:
++                exprs = materialized_conditions(solved_state.get(bb.start),
++                                                self.lifter.needs_cf)
++                saves = [f"_mc_{k} = {exprs[k]};" for k in sorted(mat_needed[bb.start])
++                         if k in exprs and exprs[k] != f"(_mc_{k})"]
++                if saves:
++                    save = " ".join(saves) + " /* flags for join */"
++                    last = bb.instructions[-1]
++                    if (last.is_branch or last.is_cond_jump) and stmts:
++                        stmts = stmts[:-1] + [save] + stmts[-1:]
++                    else:
++                        stmts = stmts + [save]
+             for stmt in stmts:
+                 lines.append(f"    {stmt}")
+ 
+@@ -1044,6 +1282,10 @@ class FunctionTranslator:
+ 
+         # Continue into the next function when control runs off the bottom.
+         if fallthrough_target is not None:
++            if self._entry_consumes_flags(fallthrough_target) and blocks:
++                for st in handoff_saves(out_state.get(blocks[-1].start),
++                                        self.lifter.needs_cf):
++                    lines.append(f"    {st}")
+             ft_name = self.lifter._call_target_name(fallthrough_target)
+             lines.append(f"    g_seh_ebp = ebp; {ft_name}(); return;"
+                          f" /* fallthrough 0x{fallthrough_target:08X} */")
+@@ -1055,6 +1297,20 @@ class FunctionTranslator:
+         # We insert "uint32_t _icall_esp = g_esp;" before the first arg push.
+         lines = _fixup_icall_esp_save(lines)
+ 
++        if eh_conts:
++            for _i, _l in enumerate(lines):
++                if _l.strip() == "MEM32(XBOX_FS_BASE) = esp;":
++                    lines[_i] = (_l + f" recomp_eh_bind(esp, &_eh_jb, "
++                                 f"0x{start:08X}u, 0x{end:08X}u);")
++        if start == getattr(self, "eh_jump_to_continuation", None):
++            # ebx is the registration node and esp is already [node-4]; hand
++            # both to the runtime, which longjmps into the owner. The
++            # indirect tail jump stays as the fallback for an unbound frame.
++            for _i, _l in enumerate(lines):
++                if "RECOMP_ITAIL(eax)" in _l:
++                    lines[_i] = _l.replace("RECOMP_ITAIL(eax)",
++                                           "recomp_eh_continue(eax, ebx); RECOMP_ITAIL(eax)", 1)
++
+         # Validate: comment out goto targets that reference missing labels
+         # (dead code after unconditional jumps may reference non-existent labels)
+         import re
+@@ -1215,6 +1471,9 @@ class BatchTranslator:
+             trace_functions=trace_functions)
+         self.translator.discover_static_indirect_targets()
+         self.translator.discover_cfg_ownership()
++        (self.translator.eh_continuations,
++         self.translator.eh_jump_to_continuation) = detect_cxx_eh(
++            self.func_db, self.xbe_data, verbose=True)
+ 
+     def get_functions_by_category(self, categories=None, exclude_categories=None):
+         """
