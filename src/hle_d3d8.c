@@ -949,6 +949,8 @@ static void dump_states(void)
 static void cap_draw(const char *kind, uint32_t xprim, uint32_t nverts, uint32_t pidx);
 static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t stride);
 static void rhw_inset_quads(const uint8_t *v, uint32_t nverts, uint32_t stride);
+static int hud_anchor_ff(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t stride);
+static void proj_apply(void);
 
 /* Draw calls with their result checked: a draw the PC runtime rejects
  * (invalid state for it) is otherwise simply missing from the frame. */
@@ -980,6 +982,7 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
     UINT prims;
     uint32_t vb = s_stream_vb[0], stride = s_stream_stride[0], base;
     const uint8_t *verts;
+    int hud_moved = 0;
 
     s_draws++;
     if (!ensure_device())
@@ -1030,11 +1033,14 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
     }
     IDirect3DDevice8_SetVertexShader(s_dev, s_vshader);
 
+    hud_moved = 0;
     if (!pidx) {
         verts = (const uint8_t *)gptr(base + start * stride);
         if ((s_vshader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW && nverts) {
             verts = rhw_map(verts, 0, nverts - 1, stride);
             if (xprim == 8) rhw_inset_quads(verts, nverts, stride);
+        } else if (nverts) {
+            hud_moved = hud_anchor_ff(verts, 0, nverts - 1, stride);
         }
         if (xprim == 8) {                 /* quads -> indexed triangles */
             static uint16_t idx[65536 / 4 * 6];
@@ -1063,6 +1069,8 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
         verts = (const uint8_t *)gptr(base + s_ib_base * stride);
         if ((s_vshader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW)
             verts = rhw_map(verts, lo, hi, stride);
+        else
+            hud_moved = hud_anchor_ff(verts, lo, hi, stride);
         if (xprim == 8) {
             uint32_t q, nq = n / 4;
             for (q = 0; q < nq; q++) {
@@ -1076,6 +1084,7 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
                                                     gi, D3DFMT_INDEX16, verts, stride);
         }
     }
+    if (hud_moved) proj_apply();
     s_draws_done++;
 }
 
@@ -1123,6 +1132,9 @@ void sub_00227960(void)
 static D3DVIEWPORT8 s_gvp;
 static int   s_gvp_have;
 static D3DMATRIX s_proj;
+static D3DMATRIX s_view = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
+static D3DMATRIX s_world = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
+static int s_gvp_full = 1;               /* the title's viewport is the whole 640x480 screen */
 static int   s_proj_have;
 
 static void proj_apply(void)
@@ -1142,6 +1154,7 @@ static void vp_apply(void)
     float k = 1.0f;
     if (!s_gvp_have) { g.X = 0; g.Y = 0; g.Width = 640; g.Height = 480; g.MinZ = 0.0f; g.MaxZ = 1.0f; }
     v.MinZ = g.MinZ; v.MaxZ = g.MaxZ;
+    s_gvp_full = g.X == 0 && g.Y == 0 && g.Width >= 640 && g.Height >= 480;
     if (g.X == 0 && g.Y == 0 && g.Width >= 640 && g.Height >= 480 && s_k < 1.0f) {
         v.X = 0; v.Y = 0; v.Width = (DWORD)s_bbw; v.Height = (DWORD)s_bbh;
         /* The game widens its own camera (sub_00227960 above); CW_WIDE_RENDER=1
@@ -1209,7 +1222,15 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
             if (y < miny) miny = y;
             if (y > maxy) maxy = y;
         }
-        fprintf(s_cap, "       screen x %.1f..%.1f y %.1f..%.1f\n", minx, maxx, miny, maxy);
+        fprintf(s_cap, "       screen x %.1f..%.1f y %.1f..%.1f  callers", minx, maxx, miny, maxy);
+        {
+            int k, n = 0;
+            for (k = 0; k < 96 && n < 10; k++) {
+                uint32_t r = MEM32(g_esp + 4u * (uint32_t)k);
+                if (r > 0x11000u && r < 0x2D0000u) { fprintf(s_cap, " %06X", r); n++; }
+            }
+        }
+        fputc('\n', s_cap);
     }
     /* Spanning the screen and plain -- untextured, or a small texture (fades
      * draw a tiny texture tinted by vertex colour; cutscene bars) -- or
@@ -1220,6 +1241,32 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
         sx = (float)s_bbw / 640.0f; sy = (float)s_bbh / 480.0f; ox = 0; oy = 0;
     } else {
         sx = sy = s_hs; ox = s_hx0; oy = s_hy0;
+        /* HUD anchoring (widescreen, in play: no menu open -- the title's
+         * active-menu pointer 0x005ED8B0 is null). Pieces wholly in the
+         * bottom-left or bottom-right corner zone (health gauge, radar and its
+         * blips) or at the very left/right edge (off-screen arrows) keep their
+         * margin to the screen edge instead of the 4:3 edge. Target markers
+         * follow enemies and stay in the 4:3 mapping, which matches the
+         * widened view. CW_NO_HUD_ANCHOR=1 disables. */
+        if (ox > 0.0f && s_k < 1.0f && MEM32(0x005ED8B0u) == 0 && !getenv("CW_NO_HUD_ANCHOR")) {
+            /* Judged by the piece's centre (the radar rotates; its bounding
+             * box does not stay put). Large or tall pieces with their centre
+             * in the outer quarters -- gauges, radar, the off-screen
+             * chevrons -- anchor; small ones only in the bottom corners
+             * (radar blips, ammo digits): target markers are small and stay. */
+            float miny = 1e9f, maxy = -1e9f, cx, cy;
+            for (i = lo; i <= hi; i++) {
+                float y;
+                memcpy(&y, buf + (size_t)i * stride + 4, 4);
+                if (y < miny) miny = y;
+                if (y > maxy) maxy = y;
+            }
+            cx = 0.5f * (minx + maxx); cy = 0.5f * (miny + maxy);
+            if ((maxx - minx > 16.0f || maxy - miny > 16.0f) || cy >= 300.0f) {
+                if (cx < 200.0f && (cy >= 300.0f || maxy - miny > 16.0f)) ox = 0.0f;
+                else if (cx > 440.0f && (cy >= 300.0f || maxy - miny > 16.0f)) ox = 2.0f * s_hx0;
+            }
+        }
     }
     {
         /* Screen wipes: full-height panels anchored to the left or right
@@ -1289,6 +1336,64 @@ static void rhw_inset_quads(const uint8_t *vconst, uint32_t nverts, uint32_t str
     }
 }
 
+/* HUD anchoring in widescreen. The HUD is drawn in 3D through an
+ * orthographic camera that the game widens like any other full-screen camera
+ * (sub_00227960), so it keeps the 4:3 layout: the 640-wide screen spans clip
+ * x -k..k. A piece lying wholly in the left or right part of that layout is
+ * moved out by the side-bar width (1 - k in clip space), keeping its margin
+ * to the screen edge; pieces across the middle stay. Perspective draws (the
+ * world, markers over enemies) and 4:3 mode are untouched.
+ * hud_x_shift: the clip-x shift for a draw whose clip-x extent is x0..x1. */
+static float hud_x_shift(float x0, float x1)
+{
+    if (s_k >= 1.0f || getenv("CW_NO_HUD_ANCHOR")) return 0.0f;
+    if (x1 < -0.25f * s_k) return -(1.0f - s_k);
+    if (x0 > 0.25f * s_k) return 1.0f - s_k;
+    return 0.0f;
+}
+
+static void mat_mul(D3DMATRIX *o, const D3DMATRIX *a, const D3DMATRIX *b)
+{
+    int r, c, k;
+    D3DMATRIX t;
+    for (r = 0; r < 4; r++)
+        for (c = 0; c < 4; c++) {
+            float s = 0.0f;
+            for (k = 0; k < 4; k++) s += a->m[r][k] * b->m[k][c];
+            t.m[r][c] = s;
+        }
+    *o = t;
+}
+
+/* Fixed-function draw: if the projection is orthographic and the viewport is
+ * the whole screen, find the draw's clip-x extent and shift the projection
+ * for it. Returns 1 when the projection was changed (restore with
+ * proj_apply after the draw). */
+static int hud_anchor_ff(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t stride)
+{
+    D3DMATRIX m;
+    float x0 = 1e9f, x1 = -1e9f, sh;
+    uint32_t i;
+    DWORD pos = s_vshader & D3DFVF_POSITION_MASK;
+    if (s_k >= 1.0f || !s_proj_have || !s_gvp_full) return 0;
+    if (s_proj._34 != 0.0f || s_proj._44 != 1.0f) return 0;          /* perspective */
+    if (pos == D3DFVF_XYZRHW || pos == 0 || hi < lo || hi - lo > 4096) return 0;
+    mat_mul(&m, &s_world, &s_view);
+    mat_mul(&m, &m, &s_proj);
+    for (i = lo; i <= hi; i++) {
+        const float *p = (const float *)(v + (size_t)i * stride);
+        float x = p[0] * m._11 + p[1] * m._21 + p[2] * m._31 + m._41;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+    }
+    sh = hud_x_shift(x0, x1);
+    if (sh == 0.0f) return 0;
+    m = s_proj;
+    m._41 += sh * m._44;
+    IDirect3DDevice8_SetTransform(s_dev, D3DTS_PROJECTION, &m);
+    return 1;
+}
+
 static void m_set_transform(uint32_t state, uint32_t pm)
 {
     D3DTRANSFORMSTATETYPE t;
@@ -1305,6 +1410,8 @@ static void m_set_transform(uint32_t state, uint32_t pm)
         proj_apply();
         return;
     }
+    if (t == D3DTS_VIEW) memcpy(&s_view, gptr(pm), sizeof s_view);
+    if (t == D3DTS_WORLD) memcpy(&s_world, gptr(pm), sizeof s_world);
     IDirect3DDevice8_SetTransform(s_dev, t, (const D3DMATRIX *)gptr(pm));
 }
 
@@ -1490,6 +1597,24 @@ static void cap_draw(const char *kind, uint32_t xprim, uint32_t nverts, uint32_t
             XTSS(1, XTSS_ADDRESSU), XTSS(1, XTSS_ADDRESSV),
             XTSS(0, XTSS_TEXTURETRANSFORMFLAGS), XTSS(0, XTSS_TEXCOORDINDEX),
             XTSS(1, XTSS_TEXTURETRANSFORMFLAGS), XTSS(1, XTSS_TEXCOORDINDEX));
+    if (!(s_vshader & 1)) {
+        uint32_t vb = s_stream_vb[0];
+        fprintf(s_cap, "       proj 11=%g 22=%g 33=%g 34=%g 41=%g 42=%g 43=%g 44=%g vpfull=%d",
+                s_proj._11, s_proj._22, s_proj._33, s_proj._34, s_proj._41, s_proj._42, s_proj._43, s_proj._44,
+                s_gvp_full);
+        if (vb && s_stream_stride[0] && (s_vshader & D3DFVF_POSITION_MASK) != D3DFVF_XYZRHW) {
+            D3DMATRIX m;
+            const float *p = (const float *)gptr(phys_to_va(MEM32(vb + 4)));
+            mat_mul(&m, &s_world, &s_view);
+            mat_mul(&m, &m, &s_proj);
+            {
+                float x = p[0] * m._11 + p[1] * m._21 + p[2] * m._31 + m._41;
+                float w = p[0] * m._14 + p[1] * m._24 + p[2] * m._34 + m._44;
+                fprintf(s_cap, " v0 clip x %g w %g (x/w %g)", x, w, w != 0.0f ? x / w : 0.0f);
+            }
+        }
+        fputc('\n', s_cap);
+    }
 }
 
 static void capture_poll(void)
