@@ -32,12 +32,21 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
 TOOLKIT = os.path.join(os.path.dirname(PROJECT), "xboxrecomp")
 
-MANUAL = os.path.join(PROJECT, "src", "recomp_manual.c")
-# High-level replacements of the title's statically linked XDK libraries live
-# beside it as src/hle_*.c (hle_dsound.c: DirectSound). They override
-# generated bodies exactly the way recomp_manual.c does.
-HLE_GLOB = os.path.join(PROJECT, "src", "hle_*.c")
-GEN = os.path.join(PROJECT, "src", "recomp", "gen")
+SRC = os.path.join(PROJECT, "src")
+GEN = os.path.join(SRC, "recomp", "gen")
+
+
+def override_files():
+    """Every hand-written source that may define sub_XXXXXXXX: src/overrides
+    (single-function lifts), src/platform (XDK libraries replaced: d3d8.c,
+    dsound.c), src/host and src/game (recovered original source). All of
+    them override generated bodies the same way."""
+    out = []
+    for root, dirs, files in os.walk(SRC):
+        if os.path.normpath(root).startswith(os.path.normpath(os.path.join(SRC, "recomp"))):
+            continue
+        out += [os.path.join(root, f) for f in files if f.endswith((".c", ".cpp"))]
+    return sorted(out)
 
 # Detection is the toolkit's own, not a second regex that can disagree with it.
 # manual_scan.py exists precisely because two regexes drifted apart and every
@@ -66,15 +75,14 @@ def main():
                     help="report what would change, touch nothing")
     args = ap.parse_args()
 
-    import glob
-    files = [MANUAL] + sorted(glob.glob(HLE_GLOB))
+    files = override_files()
     names = set()
     wrapped = set()
     for path in files:
         defs = set(definition_names(path))
         names |= defs
         # A replacement that calls sub_X_gen keeps the generated body under
-        # that name instead of deleting it: hle_d3d8.c replaces Direct3D on
+        # that name instead of deleting it: platform/d3d8.c replaces Direct3D on
         # the 32-bit build and falls through to the title's own code on x64.
         with open(path, encoding="utf-8", errors="replace") as fh:
             text = fh.read()

@@ -1,6 +1,6 @@
 /*
- * hle_dsound_mix.inc -- host audio output for the DirectSound replacement.
- * Included at the end of hle_dsound.c.
+ * dsound_mix.inc -- host audio output for the DirectSound replacement.
+ * Included at the end of dsound.c.
  *
  * The replacement above keeps every buffer's and stream's state the way the
  * title sees it: data pointer, format, volume, frequency, and the tick the

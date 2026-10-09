@@ -1,5 +1,5 @@
 /*
- * hle_input.c -- controller input for the recompiled title.
+ * input.c -- controller input for the recompiled title.
  *
  * The title links XAPI's USB gamepad stack, which talks to OHCI hardware
  * that does not exist here, so no pad is ever reported. These wrappers
@@ -533,7 +533,7 @@ void sub_00333359(void)
  * frames, not reads: the game reads the pad hundreds of times during movies,
  * at a rate set by the host clock. Needs RECOMP_FIXED_TIME=1 on both runs
  * (1/60 s of game time per frame) for the replay to stay in step. */
-char hle_shot_path[260];                  /* one-off screenshot path (hle_d3d8.c) */
+char hle_shot_path[260];                  /* one-off screenshot path (d3d8.c) */
 static FILE *s_rec;
 static FILE *s_rep;
 static uint32_t s_poll;

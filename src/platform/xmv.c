@@ -1,5 +1,5 @@
 /*
- * hle_xmvtrace.c -- diagnostic wrapper around the XMV player's frame step.
+ * xmv.c -- diagnostic wrapper around the XMV player's frame step.
  *
  * 0x00301C83 is the title's linked XMV decoder "get next frame" routine
  * (this, ?, pStatus). With CW_XMV_TRACE=1 it logs the decoder fields that

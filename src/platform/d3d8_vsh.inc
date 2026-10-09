@@ -1,7 +1,7 @@
 /*
- * hle_d3d8_vsh.inc -- Xbox (NV2A) vertex programs on the PC's vs.1.1.
+ * d3d8_vsh.inc -- Xbox (NV2A) vertex programs on the PC's vs.1.1.
  *
- * Included by hle_d3d8.c inside its HLE_D3D8_AVAILABLE section; uses that
+ * Included by d3d8.c inside its HLE_D3D8_AVAILABLE section; uses that
  * file's device and captured state.
  *
  * D3DDevice_CreateVertexShader hands the Xbox D3D a declaration (the same

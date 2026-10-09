@@ -1,5 +1,5 @@
 /*
- * hle_d3d8.c -- render the title's Direct3D 8 calls through the PC's d3d8.dll.
+ * d3d8.c -- render the title's Direct3D 8 calls through the PC's d3d8.dll.
  *
  * Clone Wars links Microsoft's Xbox Direct3D 8 into its D3D section and drives
  * the NV2A through it. Every Direct3D entry point the title calls is wrapped
@@ -380,7 +380,7 @@ static void rt_note_shown(void)
 
 /* ---- textures ---------------------------------------------------------- */
 
-#include "../../xboxrecomp/src/d3d/d3d8_swizzle.h"
+#include "../../../xboxrecomp/src/d3d/d3d8_swizzle.h"
 
 typedef struct {
     uint32_t data, format, size, sample;
@@ -744,7 +744,7 @@ static DWORD x_top(uint32_t v)
 
 static DWORD x_addr(uint32_t v) { return (v >= 1 && v <= 4) ? v : D3DTADDRESS_CLAMP; }
 
-#include "hle_d3d8_psh.inc"
+#include "d3d8_psh.inc"
 
 static void ps_dump_once(void)
 {
@@ -975,7 +975,7 @@ static void chk_DPUP(IDirect3DDevice8 *d, D3DPRIMITIVETYPE pt, UINT prims, const
     if (FAILED(hr)) draw_failed(hr, "DrawPrimitiveUP");
 }
 
-#include "hle_d3d8_vsh.inc"
+#include "d3d8_vsh.inc"
 int hle_vs_consts_set(int n) { s_vs_consts = n; return n; }
 
 static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
@@ -993,7 +993,7 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
         s_offscreen_draws++;
         return;
     }
-    if (s_vshader & 1) {                  /* Xbox vertex program: hle_d3d8_vsh.inc */
+    if (s_vshader & 1) {                  /* Xbox vertex program: d3d8_vsh.inc */
         if (draw_vs(xprim, nverts, start, pidx))
             s_draws_done++;
         else
@@ -1544,7 +1544,7 @@ static void m_clear(const uint32_t *a)
 /* CW_D3D8_DUMP=<prefix>: save the back buffer as <prefix>NNN.bmp every
  * 3 seconds of presented frames, 80 files at most -- what the window shows, for runs nobody
  * watches. 24-bit bottom-up BMP, same as the runtime's surface dumps. */
-/* hle_input.c's live control file asks for a screenshot with "SHOT"; it is
+/* input.c's live control file asks for a screenshot with "SHOT"; it is
  * written to CW_SHOT_FILE (default shot.bmp) at the next Swap. */
 volatile int hle_shot_request;
 
@@ -1843,7 +1843,7 @@ static void m_swap(void)
     seg_note_swap();
     rt_note_shown();
     {
-        /* The live control file (hle_input.c) is read here too: during some
+        /* The live control file (input.c) is read here too: during some
          * screens the title stops polling the pad. */
         extern void hle_live_poll(void);
         hle_live_poll();

@@ -1,6 +1,6 @@
 /*
- * hle_d3d8_psh.inc -- Xbox pixel shaders (NV2A register combiners) on the
- * PC's ps.1.1. Included by hle_d3d8.c after apply_state's helpers.
+ * d3d8_psh.inc -- Xbox pixel shaders (NV2A register combiners) on the
+ * PC's ps.1.1. Included by d3d8.c after apply_state's helpers.
  *
  * An Xbox pixel shader is a D3DPIXELSHADERDEF the D3D copies into its render
  * state array (indices 0..56, texture modes at 136): up to 8 general combiner

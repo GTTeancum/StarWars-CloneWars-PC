@@ -32,7 +32,7 @@ x64/
 src/recomp/gen/
 
 # Game files (user must provide their own legally-owned copies)
-game/
+/game/
 *.xbe
 *.iso
 *.xiso

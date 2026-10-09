@@ -440,7 +440,7 @@ void sub_002DFD50(void)
  * backend state to publish a resource table. Keep audio non-fatal for boot by
  * returning a zeroed, table-shaped guest block and logging the recovery.
  */
-/* Retired 2026-09-25: hle_dsound.c replaces DirectSound itself, so the
+/* Retired 2026-09-25: dsound.c replaces DirectSound itself, so the
  * title's own sound-bank code runs. Kept for reference; not linked. */
 static void cw_audio_bypass_00222090(void)
 {
@@ -475,7 +475,7 @@ static void cw_audio_bypass_00222090(void)
  * resource table; while audio is intentionally bypassed for boot, finalising
  * that placeholder must be a quiet success instead of dereferencing it.
  */
-/* Retired 2026-09-25: hle_dsound.c replaces DirectSound itself, so the
+/* Retired 2026-09-25: dsound.c replaces DirectSound itself, so the
  * title's own sound-bank code runs. Kept for reference; not linked. */
 static void cw_audio_bypass_00222360(void)
 {

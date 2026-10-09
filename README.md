@@ -93,7 +93,7 @@ python -m tools.xbe_parser   ../StarWars-CloneWars-PC/game/default.xbe --json ..
 python -m tools.disasm       ../StarWars-CloneWars-PC/game/default.xbe -v --force --seed-functions ../StarWars-CloneWars-PC/tools/icall_seed_functions.json
 python -m tools.func_id      ../StarWars-CloneWars-PC/game/default.xbe -v
 python -m tools.abi_analysis ../StarWars-CloneWars-PC/game/default.xbe -v
-python -m tools.recomp       ../StarWars-CloneWars-PC/game/default.xbe --all --split 1000 --gen-dir ../StarWars-CloneWars-PC/src/recomp/gen --game-name "Star Wars: The Clone Wars" --exclude-manual ../StarWars-CloneWars-PC/src/recomp_manual.c
+python -m tools.recomp       ../StarWars-CloneWars-PC/game/default.xbe --all --split 1000 --gen-dir ../StarWars-CloneWars-PC/src/recomp/gen --game-name "Star Wars: The Clone Wars" --exclude-manual ../StarWars-CloneWars-PC/src/overrides/recomp_manual.c
 ```
 
 Then, from this repository, mark the functions replaced by hand-written code:
@@ -118,18 +118,28 @@ folders, or copy the `.exe` and `.pdb` there yourself. Run it from there.
 
 ## Source layout
 
+The game runs as a hybrid. The title's x86 code, translated to C, is the
+base. Recovered original source replaces it piece by piece as it is verified.
+
 | Path | What it is |
 |---|---|
-| `src/main.c` | Entry point, directory and save setup |
-| `src/hle_d3d8.c`, `hle_d3d8_vsh.inc`, `hle_d3d8_psh.inc` | Direct3D 8 renderer: Xbox vertex/pixel shader translation, widescreen, resolution scaling, FXAA |
-| `src/hle_dsound.c`, `hle_dsound_mix.inc` | DirectSound replacement and audio mixer |
-| `src/hle_input.c` | Controller and keyboard input |
-| `src/recomp_manual.c` | Hand-written replacements for individual game functions |
-| `tools/` | Seed lists for the disassembler and helper scripts |
+| `src/host/` | Entry point, directory and save setup (`main.c`), controller and keyboard input (`input.c`) |
+| `src/platform/` | The title's Xbox libraries replaced: Direct3D 8 renderer with shader translation, widescreen, resolution scaling and FXAA (`d3d8.c`); DirectSound and audio mixer (`dsound.c`); movie playback hooks (`xmv.c`) |
+| `src/overrides/` | Hand-written replacements for individual translated functions |
+| `src/game/` | Recovered original game source, one file per original source file. `missions/` holds every mission script |
+| `src/game/glue/` | Bridge between recovered source and translated code |
+| `include/game/` | Shared declarations for the recovered source |
+| `tools/` | Seed lists for the disassembler and helper scripts; `gc_*.py` match recovered source to the Xbox build |
 | `patches/xboxrecomp.patch` | Changes to the xboxrecomp toolkit |
+
+The recovered source is built with `-DCW_RECOVERED_GAME=ON`. It is off by
+default while the bridge is completed.
 
 ## Credits
 
+- **Shaymin**: the recovered original source in `src/game/`, from their
+  matching decompilation of the GameCube version, and the analysis behind it
+  (function names, source file layout, data layouts).
 - [xboxrecomp](https://github.com/sp00nznet/xboxrecomp) by sp00nz (MIT);
   the patch in `patches/` modifies files from it and is under the same licence.
 - Star Wars: The Clone Wars is © Lucasfilm Ltd. This is an unofficial fan

@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.20)
 #   4. Add any game-specific compile definitions or link libraries
 # ============================================================================
 
-project(CloneWars C)
+project(CloneWars C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -56,17 +56,26 @@ add_subdirectory(${XBOXRECOMP_DIR} ${CMAKE_BINARY_DIR}/xboxrecomp)
 file(GLOB RECOMP_GEN_SOURCES CONFIGURE_DEPENDS "src/recomp/gen/*.c")
 
 # Core game sources
+# Layout (mirrors the GameCube decompilation's port/ tree):
+#   src/host/       entry point, directories and saves, input and live control
+#   src/platform/   the title's XDK libraries replaced: Direct3D 8, DirectSound, XMV
+#   src/overrides/  hand-lifted replacements for single recompiled functions
+#   src/game/       recovered original game source, one file per original TU
 set(GAME_SOURCES
-    src/main.c
-    src/recomp_manual.c
-    src/hle_dsound.c
-    src/hle_d3d8.c
-    src/hle_xmvtrace.c
-    src/hle_input.c
-    # Add game-specific sources here, e.g.:
-    # src/asset_loader.c
-    # src/custom_renderer.c
+    src/host/main.c
+    src/host/input.c
+    src/platform/d3d8.c
+    src/platform/dsound.c
+    src/platform/xmv.c
+    src/overrides/recomp_manual.c
 )
+# Recovered source (Shaymin's GameCube decompilation) runs through the bridge in
+# src/game/glue. Off until the generated glue exists: tools/gc_bind.py.
+option(CW_RECOVERED_GAME "Build the recovered original source in src/game" OFF)
+if(CW_RECOVERED_GAME)
+    file(GLOB_RECURSE GAME_RECOVERED_SOURCES CONFIGURE_DEPENDS "src/game/*.cpp" "src/game/*.c")
+    list(APPEND GAME_SOURCES ${GAME_RECOVERED_SOURCES})
+endif()
 
 # The recomp pipeline also generates a dispatch header and function declarations.
 # These are included by the generated .c files:
@@ -86,6 +95,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE xboxrecomp)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/recomp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${XBOXRECOMP_DIR}/include
 )
 
@@ -117,7 +127,7 @@ endif()
 # xbox_MemoryLayoutInit), and ASLR could otherwise drop the image there.
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME CloneWars32)
-    # The DX8 renderer (src/hle_d3d8.c) builds against the DirectX 8.1 SDK's
+    # The DX8 renderer (src/platform/d3d8.c) builds against the DirectX 8.1 SDK's
     # d3d8.h / d3d8.lib; without the SDK it compiles as pass-through wrappers.
     set(DXSDK8_DIR "C:/Program Files (x86)/DXSDK" CACHE PATH "DirectX 8.1 SDK root")
     if(EXISTS "${DXSDK8_DIR}/include/d3d8.h" AND EXISTS "${DXSDK8_DIR}/lib/d3d8.lib")
@@ -129,7 +139,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
                   "${DXSDK8_DIR}/include/d3d8types.h"
                   "${DXSDK8_DIR}/include/d3d8caps.h"
              DESTINATION "${DX8_HEADER_DIR}")
-        set_source_files_properties(src/hle_d3d8.c PROPERTIES
+        set_source_files_properties(src/platform/d3d8.c PROPERTIES
             COMPILE_DEFINITIONS CW_HAVE_D3D8=1
             INCLUDE_DIRECTORIES "${DX8_HEADER_DIR}")
         target_link_libraries(${PROJECT_NAME} PRIVATE "${DXSDK8_DIR}/lib/d3d8.lib")
@@ -180,7 +190,7 @@ endif()
 # ── Staging ─────────────────────────────────────────────────────
 #
 # The game reads default.xbe, data.zwp and the Addon/Bins/Data/Movies folders
-# out of the directory the .exe sits in (see resolve_dirs in src/main.c), so
+# out of the directory the .exe sits in (see resolve_dirs in src/host/main.c), so
 # the build stages itself into the dumped game directory. Left in
 # build/Release the .exe would find none of its data.
 set(CLONEWARS_STAGE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.." CACHE PATH

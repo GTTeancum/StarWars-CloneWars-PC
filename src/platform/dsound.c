@@ -1,5 +1,5 @@
 /*
- * hle_dsound.c -- silent high-level replacement for the title's DirectSound.
+ * dsound.c -- silent high-level replacement for the title's DirectSound.
  *
  * Clone Wars links Microsoft's Xbox DirectSound into its own DSOUND section,
  * and that code drives the MCPX audio processor directly. The runtime has no
@@ -40,7 +40,7 @@ extern int xbox_hle_set_event(uint32_t guest_handle);
 extern void (*volatile xbox_hle_periodic_hook)(void);
 extern unsigned long __stdcall GetTickCount(void);
 
-/* Host output (hle_dsound_mix.inc, included at the end). */
+/* Host output (dsound_mix.inc, included at the end). */
 static void mix_note_format(uint32_t obj, uint32_t wfx);
 static void mix_track_buffer(uint32_t b, int add);
 static void mix_start(void);
@@ -295,7 +295,7 @@ static void hle_stream_pop(uint32_t s, uint32_t *out)
 
 /* Complete every packet whose play time has elapsed. */
 /* Set by the host mixer once its output is running: stream packets then
- * complete when the mixer has actually played them (hle_dsound_mix.inc), the
+ * complete when the mixer has actually played them (dsound_mix.inc), the
  * way the hardware completes them. Completing on a wall clock while the mixer
  * rendered ahead of it meant the next packet was not queued yet when the mixer
  * got there -- regular dropouts during movies and music. */
@@ -1001,4 +1001,4 @@ recomp_func_t hle_dsound_lookup(uint32_t va)
     }
 }
 
-#include "hle_dsound_mix.inc"
+#include "dsound_mix.inc"
