@@ -108,6 +108,11 @@ uint32_t gb_call(uint32_t va, uint32_t self, const char *spec, const uint32_t *a
             void *h = (void *)(uintptr_t)*a++;
             uint32_t g = gb_guest(h);
             if (h && !g) {
+                /* An unknown size (p0: a pointer to a type the generator
+                 * could not size) still gets a slot: the callee writes
+                 * through it, and with no room that landed on the caller's
+                 * frame. 16 bytes covers every by-reference scalar. */
+                if (n < 16) n = 16;
                 g_esp = (g_esp - (uint32_t)n) & ~15u;   /* scratch below the args */
                 g = g_esp;
                 memcpy((void *)XBOX_PTR(g), h, (size_t)n);

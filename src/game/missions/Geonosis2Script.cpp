@@ -17,6 +17,8 @@
 //     is why the shipped code tests a constant it never reloads;
 //   * `DidPlayerShootMe` returns bool, and the block at +0xa8 is seven floats.
 
+#include <stdlib.h>   // PC addition: getenv for CW_WARP
+
 class Quat
 {
 public:
@@ -413,6 +415,14 @@ void Geonosis2Script::Execute()
 
     // ---- +0x06a8  80 bytes ----
     mHandles[9] = MissionUtility::GetPlayerHandle(0);
+    // PC addition, not in the shipped script: CW_WARP=<stage> in the environment
+    // jumps the stage machine once the first-frame setup above has run. Stage 6
+    // is the hand-over to the on-foot section (transition cutscene, Jedi spawn).
+    {
+        static int sWarp = -1;
+        if (sWarp < 0) { const char *e = getenv("CW_WARP"); sWarp = e ? atoi(e) : 0; }
+        if (sWarp > 0 && !mFlags[3] && mInts2[0] == 0) mInts2[0] = sWarp;   /* every (re)start */
+    }
     if (!mFlags[16]) {
     if (MissionUtility::DidPlayerShootMe(mHandles[13])) {
     MissionUtility::QueueSound("LMG03_27", 1.0f, 0.0f, 0.0f, "", 0, "");

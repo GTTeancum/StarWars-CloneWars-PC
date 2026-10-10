@@ -90,11 +90,17 @@ folder:
 
 ```bash
 python -m tools.xbe_parser   ../StarWars-CloneWars-PC/game/default.xbe --json ../StarWars-CloneWars-PC/game/analysis.json
-python -m tools.disasm       ../StarWars-CloneWars-PC/game/default.xbe -v --force --seed-functions ../StarWars-CloneWars-PC/tools/icall_seed_functions.json
+python -m tools.disasm       ../StarWars-CloneWars-PC/game/default.xbe -v --force --seed-functions ../StarWars-CloneWars-PC/tools/icall_seed_functions.json -o ../StarWars-CloneWars-PC/tools/disasm
+python ../StarWars-CloneWars-PC/tools/merge_fragments.py ../StarWars-CloneWars-PC/tools/disasm/functions.json
 python -m tools.func_id      ../StarWars-CloneWars-PC/game/default.xbe -v
 python -m tools.abi_analysis ../StarWars-CloneWars-PC/game/default.xbe -v
-python -m tools.recomp       ../StarWars-CloneWars-PC/game/default.xbe --all --split 1000 --gen-dir ../StarWars-CloneWars-PC/src/recomp/gen --game-name "Star Wars: The Clone Wars" --exclude-manual ../StarWars-CloneWars-PC/src/overrides/recomp_manual.c
+python -m tools.recomp       ../StarWars-CloneWars-PC/game/default.xbe --all --split 1000 --gen-dir ../StarWars-CloneWars-PC/src/recomp/gen --game-name "Star Wars: The Clone Wars" --disasm-dir ../StarWars-CloneWars-PC/tools/disasm
 ```
+
+`merge_fragments.py` re-joins functions the disassembler splits after an
+early return; without it the game hangs at boot. A function the disassembler
+missed shows up at run time as `[ICALL] Failed to resolve VA`: add its
+address to `tools/icall_seed_functions.json` and run the three steps again.
 
 Then, from this repository, mark the functions replaced by hand-written code:
 

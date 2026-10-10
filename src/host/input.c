@@ -68,11 +68,19 @@ typedef struct {
     int16_t lx, ly, rx, ry;
 } pad_t;
 
+static int have_focus(void);
+
+/* The controller counts only while the game window is in front: XInput
+ * reports the pad to every process, so another game played alongside would
+ * drive this one too. The pad still reads as connected when unfocused; it
+ * just rests. Scripted presses (the live-control file) are unaffected. */
 static int host_pad(unsigned port, pad_t *p)
 {
     struct { DWORD_ pkt; uint16_t b; uint8_t lt, rt; int16_t lx, ly, rx, ry; } s;
     if (XInputGetState(port, &s) != 0)
         return 0;
+    if (!have_focus())
+        return 1;
     p->buttons |= s.b & 0x00FF;
     if (s.b & 0x1000) p->analog[0] = 255;
     if (s.b & 0x2000) p->analog[1] = 255;

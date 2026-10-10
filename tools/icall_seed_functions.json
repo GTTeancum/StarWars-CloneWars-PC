@@ -1,2954 +1,2958 @@
 [
-  {
-    "start": "0x000111B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00015220",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000154F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00015A80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00016E10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00022AA0"
-  },
-  {
-    "start": "0x00024AE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0002CAB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0002D870",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00033608",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0003C558",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0003E5B0",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0003E900",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00040457",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00040A8A",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00041027",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00048BE0",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00048EF0",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00051190",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00051450",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0005ADC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0005E32C",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0005FE10"
-  },
-  {
-    "start": "0x00062AA0"
-  },
-  {
-    "start": "0x00063FF0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00066180",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000681F4",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x000686F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00068A60",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00068D80"
-  },
-  {
-    "start": "0x0006ABC0"
-  },
-  {
-    "start": "0x00077158",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00079290",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0007A640",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0007B870",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0007BB40"
-  },
-  {
-    "start": "0x0007C5F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0007C6E8",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0007CAE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0007D520",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0007E0C0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0007FC30",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0007FDD0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00080790"
-  },
-  {
-    "start": "0x00080C00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00081B10",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00081CA0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00083240"
-  },
-  {
-    "start": "0x000840A0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000873A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000884E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00088F80",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0008A270",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0008F1E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00092A10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00092E80",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00093030",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00095480"
-  },
-  {
-    "start": "0x00098A80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00098F60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000990D0"
-  },
-  {
-    "start": "0x00099240"
-  },
-  {
-    "start": "0x0009A530",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0009B360"
-  },
-  {
-    "start": "0x0009C200"
-  },
-  {
-    "start": "0x0009D080",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0009D3C0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0009E220"
-  },
-  {
-    "start": "0x000A2CB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000A44A0",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x000A5730",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000A5880",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000A82B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000B1F74",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x000B1F90",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000B8314",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x000BD360",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000C2350",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000C5C60"
-  },
-  {
-    "start": "0x000C5C80"
-  },
-  {
-    "start": "0x000D62A4",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x000D6470",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x000D93D0"
-  },
-  {
-    "start": "0x000E3330",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000E4890",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000E7F00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000E9830",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000E9BC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000E9CB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000E9E00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000EA030",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000EBF30",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000EBF50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000ECD30"
-  },
-  {
-    "start": "0x000ECD40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000ECD50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000ECD70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000EEB70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000EFA80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000EFD00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000EFD50"
-  },
-  {
-    "start": "0x000F0700",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x000F3A70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F3CB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F3D00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F42A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F4780",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F4860",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F4920",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F4EC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F50C0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F50E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F5100",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F5150",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F5160",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F58B0"
-  },
-  {
-    "start": "0x000F86B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F89F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F92B0",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x000F9980",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F9C60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000F9F60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000FA160",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x000FCE34",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x000FEFA0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000FF040",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000FF0E0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x000FF3F0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00100120",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x001001F0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00101900",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00105C04",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00106430"
-  },
-  {
-    "start": "0x00106470"
-  },
-  {
-    "start": "0x00106480"
-  },
-  {
-    "start": "0x001064D0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00107940"
-  },
-  {
-    "start": "0x00108280",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0010AC60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0010AE80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0010C000",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0010C260",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0010EB80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0010EC80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0010ED90"
-  },
-  {
-    "start": "0x00110010",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00110370",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00110560",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00112A80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00112D90"
-  },
-  {
-    "start": "0x00114700",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x001157F0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00115EF0"
-  },
-  {
-    "start": "0x001173A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00118950",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00119B00",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00122200",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x001235E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00126960",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00127430",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00128180",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0012A380",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0012BE0C",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0012BF60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0012C0E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0012E283",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00139F80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0013E6D0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00145750",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00149D70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x001501EA",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x001502C0",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x001502E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00157B60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00158C40",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0015A070",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0015A9B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0015D88A",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00168CF0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00168D10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0016E060",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0016ED10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00170D40",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0017A73D",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00181276",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00187FA7",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x001A2D72",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x001AE57E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x001B8B63",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x001D8C2F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x001E2528",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x001F5618",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00207F8E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00213FF7",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00214299",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0021B578",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0021B751",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00229CD0"
-  },
-  {
-    "start": "0x0022F150",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00232310",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x002323E0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x002334D0",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00233850",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00234C30",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0023AF20",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0023B830",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00247C40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x0024E440"
-  },
-  {
-    "start": "0x00250AAC",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00250B10",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00250BBC",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00254290",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x00256D70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002578F0"
-  },
-  {
-    "start": "0x002580B0",
-    "source": "unresolved jump target 2026-09-26"
-  },
-  {
-    "start": "0x0025A0D0",
-    "source": "vtable entry not detected 2026-09-27"
-  },
-  {
-    "start": "0x0025A770",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0025A970",
-    "source": "vtable entry not detected 2026-09-27"
-  },
-  {
-    "start": "0x0025AC40",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0025B0C0",
-    "source": "vtable entry not detected 2026-09-27"
-  },
-  {
-    "start": "0x0025B390",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0025B5E0",
-    "source": "runtime unresolved indirect target 2026-09-27"
-  },
-  {
-    "start": "0x0025BDE0",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x0025C080",
-    "source": "vtable entry not detected 2026-09-27"
-  },
-  {
-    "start": "0x0025CED0",
-    "source": "vtable entry not detected 2026-09-27"
-  },
-  {
-    "start": "0x0025D1E0",
-    "source": "vtable entry not detected 2026-09-27"
-  },
-  {
-    "start": "0x0025FA70",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00260DD0",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00262AC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x00265374",
-    "source": "merged-function split 2026-09-26"
-  },
-  {
-    "start": "0x00265380"
-  },
-  {
-    "start": "0x00265394"
-  },
-  {
-    "start": "0x0026540C"
-  },
-  {
-    "start": "0x00265430"
-  },
-  {
-    "start": "0x00265458",
-    "source": "runtime unresolved indirect target 2026-09-27"
-  },
-  {
-    "start": "0x002654B4"
-  },
-  {
-    "start": "0x00265510",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00265534",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00269A91",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0026A80E",
-    "source": "runtime unresolved indirect target 2026-09-27"
-  },
-  {
-    "start": "0x0026AEA9",
-    "source": "runtime unresolved indirect target 2026-09-27"
-  },
-  {
-    "start": "0x0026C943",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0026E6E9",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AAEF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AB2F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AC0F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AC4F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AC6F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028ACB3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AE9F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AEBB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AEFB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AF1F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AF9F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028AFC2",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B023",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B0A3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B0BF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B13F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B17E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B2BB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B30F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B353",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B373",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B42B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B4CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B5DB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B602",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B69F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B6DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B73F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B78B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B7CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B80F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B82F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B88F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B8DB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B91B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B97F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B99B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028B9DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BA8B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BAFB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BC2B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BD8F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BE2B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BE8F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BF4B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BF8F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028BFFB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C05F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C07B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C0DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C12B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C16F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C1CB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C213",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C24F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C2AF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C31B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C39F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C3EB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C40F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C4AB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C4EF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C55B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C57F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C5EB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C62F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C6CB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C70F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C75B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C77F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C7EB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C82F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C87B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C89F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C92B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C96F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C9BB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028C9DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CA6B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CAAF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CAFB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CB1F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CB8B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CBCF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CC0B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CC7B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CCFF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CD8B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CDAF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CDFB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CE1F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CEAB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CECF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CF3B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028CF9F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D01B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D07F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D0DB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D0FF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D17B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D1DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D24F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D28F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D2EF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D38E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D3CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D3EE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D40E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D42E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D44E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D46E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D48E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D4AE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D4CE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D4EE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D50E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D52E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D54E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D56E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D58E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D652",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D6CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D71F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D73F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D7AB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D7CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D7EF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D86F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D88F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D8AF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D8FF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028D9AB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DA3B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DA5B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DA9B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DB1B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DBCF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DC34",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DCAF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DF7F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DF9F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DFBF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028DFDF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E03B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E2CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E2EB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E3BF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E3DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E4A2",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E4FF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E53B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E6DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E6FE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E73F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E77F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E843",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E89E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E8DF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E8FB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E99E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028E9DB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EA1F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EAAF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EB2F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EB6B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EBEB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EC2B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028ECAF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028ED0F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EEBB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028EF3B",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0028EF9B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028F13B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028F17B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028F2E4",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028F31F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028F53F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028F9CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FA3F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FA5F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FA7F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FA9F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FBCF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FCFB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FE1B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FE3B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FFDB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0028FFFB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029003F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002900FB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029013B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029017B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029019B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002901BB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002901DB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002901FB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029021B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029034B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029036B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002903BE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029057B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029072B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029074B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002909CB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002910FB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002916CB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002916EB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029181B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00291FBF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292012",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292082",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002920C3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002920FB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002921CB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002922DE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002922FE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029233B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029237B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002923A4",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292413",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029244B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029248F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002924AE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002924CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292AAF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292B08",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292B7B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292B98",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292D8B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292E33",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292E8E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292ECB",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292F1E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292F7E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00292FBE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293024",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029307E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029329F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029335E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029341E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029343E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029345E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029347E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002934BE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002934E2",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002935E3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293723",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293763",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002937BE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029381F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029383F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029387E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002938C3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002939AF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002939CF",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293A0F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293B3E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293B5E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293BA3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293CB3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293DB3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293DCE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293DEE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293E0E",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293E4F",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00293E93",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00294114",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029412B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00294174",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029418B",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002942B3",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0029AE20"
-  },
-  {
-    "start": "0x0029B270"
-  },
-  {
-    "start": "0x0029C0A0"
-  },
-  {
-    "start": "0x002A1E20",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1E30",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1E40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1E50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1E60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1E70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1E80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1E90",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1EA0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1EB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1EC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1ED0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1EE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1EF0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F20",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F30",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1F90",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1FA0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1FB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1FC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1FD0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1FE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A1FF0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2000",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2010",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2020",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2030",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2040",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2050",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2060",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2070",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2080",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2090",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A20A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A20B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A20C0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A20D0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A20E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A20F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2100",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2110",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2120",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2130",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2140",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2150",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2160",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2170",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2180",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A21B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A21C0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A21D0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A21E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A21F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2200",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2210",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2250",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2260",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2270",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2290",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A22A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A22B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2300",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2310",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2320",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2330",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2340",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2350",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A23A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A23B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2440",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2450",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2460",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2470",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2480",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2510",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2520",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2530",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2560",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2570",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2580",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2590",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A25A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A25B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A25E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A25F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2600",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2610",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2620",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2630",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2640",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2650",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2660",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2670",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2680",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2690",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A26A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A26B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A26C0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A26E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A26F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2700",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2710",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2720",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2730",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2740",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2750",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2780",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2790",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A27A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A27B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A27C0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A27D0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A27E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A27F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2800",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2810",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2820",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2830",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2840",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2850",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2860",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2870",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2880",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2890",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A28A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A28B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A28C0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A28D0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A28E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A28F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2900",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2910",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2920",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2930",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2940",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2950",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2960",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2970",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2980",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2990",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A29A0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A29B0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A29C0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A29D0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A29E0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A29F0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A20",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A30",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2A90",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2AA0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2AB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2AC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2AE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2AF0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2B90",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2BB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2BC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2BD0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2BE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2C00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2C40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2C50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2C60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2C70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2CB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2CC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2CD0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2CE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2CF0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D00",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D10",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D20",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D30",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D40",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D50",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D60",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D70",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D80",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2D90",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2DA0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2DB0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2DC0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2DD0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2DE0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002A2DF0",
-    "source": "value-reference scan 2026-09-25"
-  },
-  {
-    "start": "0x002AF013",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002B04A3",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x002B06F8",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002BB523",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002BC803",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x002BEC62",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x002C035A",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002C7E6A",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x002C9F47",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002DC5E4",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002DC660"
-  },
-  {
-    "start": "0x002E186C",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x002E2180",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x002E702D",
-    "source": "zlib configuration_table (deflate_fast)"
-  },
-  {
-    "start": "0x002E72DB",
-    "source": "zlib configuration_table (deflate_slow)"
-  },
-  {
-    "start": "0x002F0C8C",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x00307EAE",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x003086E6",
-    "source": "code-immediate scan 2026-09-26"
-  },
-  {
-    "start": "0x0032BB13"
-  },
-  {
-    "start": "0x0032D95C",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0032EF08",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x0033398C",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x003339DE",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00333C99",
-    "source": "data-table scan 2026-09-25"
-  },
-  {
-    "start": "0x00334297",
-    "source": "data-table scan 2026-09-25"
-  }
+ {
+  "start": "0x000111B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00015220",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000154F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00015A80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00016E10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00022AA0"
+ },
+ {
+  "start": "0x00024AE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0002CAB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0002D870",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00033608",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0003C558",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0003E5B0",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0003E900",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00040457",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00040A8A",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00041027",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00048BE0",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00048EF0",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00051190",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00051450",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0005ADC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0005E32C",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0005FE10"
+ },
+ {
+  "start": "0x00062AA0"
+ },
+ {
+  "start": "0x00063FF0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00066180",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000681F4",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x000686F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00068A60",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00068D80"
+ },
+ {
+  "start": "0x0006ABC0"
+ },
+ {
+  "start": "0x00077158",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00079290",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0007A640",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0007B870",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0007BB40"
+ },
+ {
+  "start": "0x0007C5F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0007C6E8",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0007CAE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0007D520",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0007E0C0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0007FC30",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0007FDD0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00080790"
+ },
+ {
+  "start": "0x00080C00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00081B10",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00081CA0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00083240"
+ },
+ {
+  "start": "0x000840A0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000873A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000884E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00088F80",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0008A270",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0008F1E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00092A10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00092E80",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00093030",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00095480"
+ },
+ {
+  "start": "0x00098A80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00098F60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000990D0"
+ },
+ {
+  "start": "0x00099240"
+ },
+ {
+  "start": "0x0009A530",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0009B360"
+ },
+ {
+  "start": "0x0009C200"
+ },
+ {
+  "start": "0x0009D080",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0009D3C0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0009E220"
+ },
+ {
+  "start": "0x000A2CB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000A44A0",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x000A5730",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000A5880",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000A82B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000B1F74",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x000B1F90",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000B8314",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x000BD360",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000C2350",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000C5C60"
+ },
+ {
+  "start": "0x000C5C80"
+ },
+ {
+  "start": "0x000D62A4",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x000D6470",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x000D93D0"
+ },
+ {
+  "start": "0x000E3330",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000E4890",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000E7F00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000E9830",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000E9BC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000E9CB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000E9E00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000EA030",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000EBF30",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000EBF50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000ECD30"
+ },
+ {
+  "start": "0x000ECD40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000ECD50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000ECD70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000EEB70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000EFA80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000EFD00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000EFD50"
+ },
+ {
+  "start": "0x000F0700",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x000F3A70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F3CB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F3D00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F42A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F4780",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F4860",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F4920",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F4EC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F50C0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F50E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F5100",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F5150",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F5160",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F58B0"
+ },
+ {
+  "start": "0x000F86B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F89F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F92B0",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x000F9980",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F9C60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000F9F60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000FA160",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x000FCE34",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x000FEFA0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000FF040",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000FF0E0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x000FF3F0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00100120",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x001001F0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00101900",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00105C04",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00106430"
+ },
+ {
+  "start": "0x00106470"
+ },
+ {
+  "start": "0x00106480"
+ },
+ {
+  "start": "0x001064D0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00107940"
+ },
+ {
+  "start": "0x00108280",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0010AC60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0010AE80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0010C000",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0010C260",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0010EB80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0010EC80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0010ED90"
+ },
+ {
+  "start": "0x00110010",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00110370",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00110560",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00112A80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00112D90"
+ },
+ {
+  "start": "0x00114700",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x001157F0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00115EF0"
+ },
+ {
+  "start": "0x001173A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00118950",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00119B00",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00122200",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x001235E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00126960",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00127430",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00128180",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0012A380",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0012BE0C",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0012BF60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0012C0E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0012E283",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00139F80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0013E6D0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00145750",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00149D70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x001501EA",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x001502C0",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x001502E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00157B60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00158C40",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0015A070",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0015A9B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0015D88A",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00168CF0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00168D10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0016E060",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0016ED10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00170D40",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0017A73D",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00181276",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00187FA7",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x001A2D72",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x001AE57E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x001B8B63",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x001D8C2F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x001E2528",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x001F5618",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00207F8E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00213FF7",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00214299",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0021B578",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0021B751",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00229CD0"
+ },
+ {
+  "start": "0x0022F150",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00232310",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x002323E0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x002334D0",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00233850",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00234C30",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0023AF20",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0023B830",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00247C40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x0024E440"
+ },
+ {
+  "start": "0x00250AAC",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00250B10",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00250BBC",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00254290",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x00256D70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002578F0"
+ },
+ {
+  "start": "0x002580B0",
+  "source": "unresolved jump target 2026-09-26"
+ },
+ {
+  "start": "0x0025A0D0",
+  "source": "vtable entry not detected 2026-09-27"
+ },
+ {
+  "start": "0x0025A770",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0025A970",
+  "source": "vtable entry not detected 2026-09-27"
+ },
+ {
+  "start": "0x0025AC40",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0025B0C0",
+  "source": "vtable entry not detected 2026-09-27"
+ },
+ {
+  "start": "0x0025B390",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0025B5E0",
+  "source": "runtime unresolved indirect target 2026-09-27"
+ },
+ {
+  "start": "0x0025BDE0",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x0025C080",
+  "source": "vtable entry not detected 2026-09-27"
+ },
+ {
+  "start": "0x0025CED0",
+  "source": "vtable entry not detected 2026-09-27"
+ },
+ {
+  "start": "0x0025D1E0",
+  "source": "vtable entry not detected 2026-09-27"
+ },
+ {
+  "start": "0x0025FA70",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00260DD0",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00262AC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x00265374",
+  "source": "merged-function split 2026-09-26"
+ },
+ {
+  "start": "0x00265380"
+ },
+ {
+  "start": "0x00265394"
+ },
+ {
+  "start": "0x0026540C"
+ },
+ {
+  "start": "0x00265430"
+ },
+ {
+  "start": "0x00265458",
+  "source": "runtime unresolved indirect target 2026-09-27"
+ },
+ {
+  "start": "0x002654B4"
+ },
+ {
+  "start": "0x00265510",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00265534",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00269A91",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0026A80E",
+  "source": "runtime unresolved indirect target 2026-09-27"
+ },
+ {
+  "start": "0x0026AEA9",
+  "source": "runtime unresolved indirect target 2026-09-27"
+ },
+ {
+  "start": "0x0026C943",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0026E6E9",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AAEF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AB2F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AC0F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AC4F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AC6F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028ACB3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AE9F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AEBB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AEFB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AF1F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AF9F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028AFC2",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B023",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B0A3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B0BF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B13F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B17E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B2BB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B30F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B353",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B373",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B42B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B4CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B5DB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B602",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B69F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B6DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B73F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B78B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B7CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B80F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B82F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B88F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B8DB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B91B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B97F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B99B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028B9DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BA8B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BAFB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BC2B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BD8F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BE2B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BE8F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BF4B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BF8F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028BFFB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C05F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C07B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C0DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C12B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C16F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C1CB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C213",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C24F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C2AF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C31B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C39F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C3EB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C40F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C4AB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C4EF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C55B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C57F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C5EB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C62F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C6CB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C70F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C75B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C77F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C7EB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C82F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C87B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C89F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C92B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C96F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C9BB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028C9DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CA6B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CAAF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CAFB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CB1F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CB8B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CBCF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CC0B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CC7B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CCFF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CD8B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CDAF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CDFB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CE1F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CEAB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CECF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CF3B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028CF9F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D01B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D07F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D0DB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D0FF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D17B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D1DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D24F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D28F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D2EF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D38E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D3CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D3EE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D40E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D42E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D44E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D46E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D48E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D4AE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D4CE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D4EE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D50E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D52E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D54E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D56E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D58E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D652",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D6CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D71F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D73F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D7AB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D7CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D7EF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D86F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D88F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D8AF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D8FF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028D9AB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DA3B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DA5B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DA9B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DB1B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DBCF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DC34",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DCAF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DF7F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DF9F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DFBF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028DFDF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E03B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E2CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E2EB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E3BF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E3DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E4A2",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E4FF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E53B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E6DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E6FE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E73F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E77F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E843",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E89E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E8DF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E8FB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E99E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028E9DB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EA1F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EAAF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EB2F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EB6B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EBEB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EC2B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028ECAF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028ED0F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EEBB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028EF3B",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0028EF9B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028F13B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028F17B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028F2E4",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028F31F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028F53F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028F9CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FA3F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FA5F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FA7F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FA9F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FBCF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FCFB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FE1B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FE3B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FFDB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0028FFFB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029003F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002900FB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029013B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029017B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029019B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002901BB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002901DB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002901FB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029021B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029034B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029036B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002903BE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029057B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029072B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029074B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002909CB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002910FB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002916CB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002916EB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029181B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00291FBF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292012",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292082",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002920C3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002920FB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002921CB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002922DE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002922FE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029233B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029237B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002923A4",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292413",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029244B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029248F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002924AE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002924CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292AAF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292B08",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292B7B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292B98",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292D8B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292E33",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292E8E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292ECB",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292F1E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292F7E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00292FBE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293024",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029307E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029329F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029335E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029341E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029343E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029345E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029347E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002934BE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002934E2",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002935E3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293723",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293763",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002937BE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029381F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029383F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029387E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002938C3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002939AF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002939CF",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293A0F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293B3E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293B5E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293BA3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293CB3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293DB3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293DCE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293DEE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293E0E",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293E4F",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00293E93",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00294114",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029412B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00294174",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029418B",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002942B3",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0029AE20"
+ },
+ {
+  "start": "0x0029B270"
+ },
+ {
+  "start": "0x0029C0A0"
+ },
+ {
+  "start": "0x002A1E20",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1E30",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1E40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1E50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1E60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1E70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1E80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1E90",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1EA0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1EB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1EC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1ED0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1EE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1EF0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F20",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F30",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1F90",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1FA0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1FB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1FC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1FD0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1FE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A1FF0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2000",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2010",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2020",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2030",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2040",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2050",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2060",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2070",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2080",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2090",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A20A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A20B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A20C0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A20D0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A20E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A20F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2100",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2110",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2120",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2130",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2140",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2150",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2160",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2170",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2180",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A21B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A21C0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A21D0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A21E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A21F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2200",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2210",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2250",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2260",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2270",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2290",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A22A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A22B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2300",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2310",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2320",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2330",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2340",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2350",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A23A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A23B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2440",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2450",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2460",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2470",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2480",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2510",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2520",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2530",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2560",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2570",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2580",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2590",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A25A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A25B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A25E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A25F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2600",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2610",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2620",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2630",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2640",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2650",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2660",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2670",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2680",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2690",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A26A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A26B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A26C0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A26E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A26F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2700",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2710",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2720",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2730",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2740",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2750",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2780",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2790",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A27A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A27B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A27C0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A27D0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A27E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A27F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2800",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2810",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2820",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2830",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2840",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2850",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2860",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2870",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2880",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2890",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A28A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A28B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A28C0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A28D0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A28E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A28F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2900",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2910",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2920",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2930",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2940",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2950",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2960",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2970",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2980",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2990",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A29A0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A29B0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A29C0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A29D0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A29E0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A29F0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A20",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A30",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2A90",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2AA0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2AB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2AC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2AE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2AF0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2B90",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2BB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2BC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2BD0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2BE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2C00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2C40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2C50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2C60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2C70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2CB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2CC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2CD0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2CE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2CF0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D00",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D10",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D20",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D30",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D40",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D50",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D60",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D70",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D80",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2D90",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2DA0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2DB0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2DC0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2DD0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2DE0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002A2DF0",
+  "source": "value-reference scan 2026-09-25"
+ },
+ {
+  "start": "0x002AF013",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002B04A3",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x002B06F8",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002BB523",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002BC803",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x002BEC62",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x002C035A",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002C7E6A",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x002C9F47",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002DC5E4",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002DC660"
+ },
+ {
+  "start": "0x002E186C",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x002E2180",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x002E702D",
+  "source": "zlib configuration_table (deflate_fast)"
+ },
+ {
+  "start": "0x002E72DB",
+  "source": "zlib configuration_table (deflate_slow)"
+ },
+ {
+  "start": "0x002F0C8C",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x00307EAE",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x003086E6",
+  "source": "code-immediate scan 2026-09-26"
+ },
+ {
+  "start": "0x0032BB13"
+ },
+ {
+  "start": "0x0032D95C",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0032EF08",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0033398C",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x003339DE",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00333C99",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x00334297",
+  "source": "data-table scan 2026-09-25"
+ },
+ {
+  "start": "0x0003E1D0",
+  "source": "on-foot attack handler via [obj+0x46C] from sub_0003D6A0; unresolved ICALL in play 2026-10-09"
+ }
 ]
