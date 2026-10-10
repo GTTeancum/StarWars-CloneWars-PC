@@ -2954,5 +2954,17 @@
  {
   "start": "0x0003E1D0",
   "source": "on-foot attack handler via [obj+0x46C] from sub_0003D6A0; unresolved ICALL in play 2026-10-09"
+ },
+ {
+  "start": "0x00117170",
+  "source": "callback pushed at 0x117181/0x1171B0 (add ecx,0x3c; jmp 0xD84C0), code-immediate scan 2026-10-10"
+ },
+ {
+  "start": "0x00120650",
+  "source": "callback pushed by frontend code; was inside 0x120640 (5-byte jmp thunk), code-immediate scan 2026-10-10"
+ },
+ {
+  "start": "0x00120670",
+  "source": "callback pushed at 0x1207D5; was inside 0x120640, code-immediate scan 2026-10-10"
  }
 ]

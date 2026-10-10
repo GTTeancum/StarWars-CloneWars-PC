@@ -2250,7 +2250,10 @@ void Asteroid1Script::Execute()
     }
 
     // ---- +0x58a4  32 bytes ----
-    if (MissionUtility::IsInsideRegion(mHandles[218], "attack1stop")) {
+    if (MissionUtility::IsInsideRegion(mHandles[218], "attack1stop")
+        /* Xbox release: the two wingmen trip it too */
+        || MissionUtility::IsInsideRegion(mHandles[219], "attack1stop")
+        || MissionUtility::IsInsideRegion(mHandles[220], "attack1stop")) {
     mShot = 4;
 
             }
@@ -2258,7 +2261,10 @@ void Asteroid1Script::Execute()
     case 4:
     // ---- +0x58c4  584 bytes ----
     if (!mFlags[3]) {
-        if (MissionUtility::IsInsideRegion(mHandles[218], "attack2pretrigger")) {
+        if (MissionUtility::IsInsideRegion(mHandles[218], "attack2pretrigger")
+        /* Xbox release: the two wingmen trip it too */
+        || MissionUtility::IsInsideRegion(mHandles[219], "attack2pretrigger")
+        || MissionUtility::IsInsideRegion(mHandles[220], "attack2pretrigger")) {
         mHandles[290] = MissionUtility::CreateObject("CIS_tank_mortar", "attack2a1spawn", 0, "attack2alpha1", 2, -1);
         MissionUtility::SetVelocForward(mHandles[290], 0.0f);
         MissionUtility::SetAttackRange(mHandles[290], 1);
@@ -2286,7 +2292,10 @@ void Asteroid1Script::Execute()
     }
 
     // ---- +0x5b0c  272 bytes ----
-    if (MissionUtility::IsInsideRegion(mHandles[218], "attack2trigger")) {
+    if (MissionUtility::IsInsideRegion(mHandles[218], "attack2trigger")
+        /* Xbox release: the two wingmen trip it too */
+        || MissionUtility::IsInsideRegion(mHandles[219], "attack2trigger")
+        || MissionUtility::IsInsideRegion(mHandles[220], "attack2trigger")) {
     MissionUtility::SetCurHealth(mHandles[294], 999999.0f);
     MissionUtility::SetCurHealth(mHandles[295], 999999.0f);
     MissionUtility::DisbandFlock(mHandles[189]);
@@ -4019,6 +4028,8 @@ void Asteroid1Script::Setup()
         mHandles[294] = MissionUtility::GetHandle("mortartarget1");
         mHandles[295] = MissionUtility::GetHandle("mortartarget2");
         mHandles[326] = MissionUtility::GetHandle("navCMarker");
+        // Xbox release: the preload list as the Xbox build has it (Asteroid1Script::Setup at 0x001A2F6B).
+        // Shaymin's GameCube list differs; this keeps the shipped Xbox loading.
         MissionUtility::PreloadConfig("REP_fly_fighter");
         MissionUtility::PreloadConfig("REP_walk_assault");
         MissionUtility::PreloadConfig("CIS_tank_assault");
@@ -4033,6 +4044,8 @@ void Asteroid1Script::Setup()
         MissionUtility::PreloadConfig("CIS_tank_mortar");
         MissionUtility::PreloadConfig("CIS_mortar_assault_asteroid_ord");
         MissionUtility::PreloadConfig("CIS_tank_assault_micro");
+        MissionUtility::PreloadConfig("CIS_fly_fighter");
+        MissionUtility::PreloadConfig("REP_blaster_walk_weak_ord");
         mSaveSlot = 0;
         mShot = 0;
         mInts[28] = 0;

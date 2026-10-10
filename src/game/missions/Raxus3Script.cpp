@@ -3320,7 +3320,7 @@ void Raxus3Script::Execute()
         MissionUtility::AttackTarget(mHandles[292], mHandles[249], true, true, false, false);
         MissionUtility::SetQueueFlag(false);
         BeginTimer(mTimer28);
-        MissionUtility::PlayMusic("EP5_V1_T03_01", true);
+        // Xbox release: no music change here (was PlayMusic("EP5_V1_T03_01", true)).
         mFlags[119] = true;
         }
     }
@@ -3858,6 +3858,8 @@ void Raxus3Script::Setup()
         mHandles[316] = MissionUtility::GetHandle("Building1");
         mHandles[317] = MissionUtility::GetHandle("Building2");
         mHandles[290] = MissionUtility::GetHandle("crane");
+        // Xbox release: the preload list as the Xbox build has it (Raxus3Script::Setup at 0x002081EF).
+        // Shaymin's GameCube list differs; this keeps the shipped Xbox loading.
         MissionUtility::PreloadConfig("CIS_boss_protodeka");
         MissionUtility::PreloadConfig("CIS_tank_wheeled");
         MissionUtility::PreloadConfig("RAX_bldg_forcewall_2_dest");
@@ -3865,10 +3867,17 @@ void Raxus3Script::Setup()
         MissionUtility::PreloadConfig("REP_tank_fighter1");
         MissionUtility::PreloadConfig("REP_inf_obiwan_cin");
         MissionUtility::PreloadConfig("RAX_hover_barge");
+        MissionUtility::PreloadConfig("REP_inf_anakin_cin");
         MissionUtility::PreloadConfig("RAX_bldg_crane_dest");
         MissionUtility::PreloadConfig("CIS_inf_dooku");
         MissionUtility::PreloadConfig("CIS_inf_droid");
         MissionUtility::PreloadConfig("REP_inf_anakin");
+        MissionUtility::PreloadConfig("bigexp");
+        MissionUtility::PreloadConfig("bigdustring");
+        MissionUtility::PreloadConfig("rep_inf_clone");
+        MissionUtility::PreloadConfig("rep_blaster_clone");
+        MissionUtility::PreloadConfig("rep_blaster_clone_ord");
+        MissionUtility::PreloadConfig("rep_blaster_clone_dest");
 }
 
 SPMission *Raxus3BuildMission()

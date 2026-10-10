@@ -2495,6 +2495,8 @@ void Ossus2Script::Setup()
         mHandles[223] = MissionUtility::GetHandle("bridge_unit2");
         mHandles[232] = MissionUtility::GetHandle("bridge");
         mHandles[23] = MissionUtility::GetHandle("fuel_depot_platform");
+        // Xbox release: the preload list as the Xbox build has it (Ossus2Script::Setup at 0x001F5839).
+        // Shaymin's GameCube list differs; this keeps the shipped Xbox loading.
         MissionUtility::PreloadConfig("rep_tank_fighter1");
         MissionUtility::PreloadConfig("rep_walk_assault");
         MissionUtility::PreloadConfig("rep_walk_assault_player");
@@ -2512,6 +2514,7 @@ void Ossus2Script::Setup()
         MissionUtility::PreloadConfig("rep_inf_obiwan_cin");
         MissionUtility::PreloadConfig("rep_inf_anakin_cin");
         MissionUtility::PreloadConfig("rep_blaster_fighter1_weak_ord");
+        MissionUtility::PreloadConfig("REP_mortar_assault_ord");
         mInts[11] = 0;
 }
 

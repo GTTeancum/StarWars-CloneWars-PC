@@ -89,6 +89,7 @@ namespace MissionUtility
     float  GetDistance(int, int);
     int    GetFlockCount(int);
     float  GetGameClock();
+    float  GetTime();                 // Xbox release: used by the cutscene 5 delay
     int    GetHandle(const char*);
     Matrix GetLocation(int);
     int    GetPlayerHandle(int);
@@ -204,8 +205,12 @@ public:
 
     char   mPad24[1];
     bool   mFlags[255];            // +0x025  the one-shot latches
-    char   mPad124[8];                  // +0x124
+    bool   mXboxCin5Started;            // +0x124  Xbox release: the 256th flag. Cutscene 5 has begun
+    char   mPad125[7];                  // +0x125
     float  mSavedHealth;            // +0x12c
+    float  mXboxCin5Time;           // +0x130  Xbox release: block B's second entry -- when cutscene 5
+                                    //         starts. Every later field sits 4 bytes on
+                                    //         (tools/gc_layout_check.py)
     char   mPad130[4];                  // +0x130
     Timer  mTimer0;                      // +0x134
     Timer  mTimer1;                      // +0x140
@@ -2519,11 +2524,14 @@ void Kashyyyk2Script::Execute()
     BeginTimer(mTimer27);
     MissionUtility::QueueSound("bkk13_21", 1.0f, 0.0f, 0.0f, "", 0, "");
     MissionUtility::QueueSound("ask13_22", 1.0f, 0.0f, 0.0f, "", 0, "");
-    mHandles[80] = MissionUtility::RunCin("Cin5", true, true);
+    // Xbox release: the cutscene no longer starts here (twice); see the block after this one.
     MissionUtility::SetTeamNum(mHandles[202], 0);
     MissionUtility::PlayMusic("EP4_V2_T09_05", true);
-    mHandles[80] = MissionUtility::RunCin("Cin5", true, true);
     MissionUtility::ObjectiveComplete(mInts[8]);
+    // Xbox release: the time bonus is judged at the trigger, not when the cutscene ends.
+    if (MissionUtility::GetGameClock() < 510.0f) {
+    MissionUtility::BonusObjectiveComplete(mInts[11], true);
+    }
     if (MissionUtility::GetFlockCount(mHandles[0]) < 1) {
     MissionUtility::BonusObjectiveComplete(mInts[12], true);
     }
@@ -2533,8 +2541,17 @@ void Kashyyyk2Script::Execute()
     if (!mFlags[20]) {
     MissionUtility::BonusObjectiveFailed(mInts[10]);
     }
+    mXboxCin5Time = MissionUtility::GetTime() + 1.0f;   // Xbox release
     mFlags[50] = true;
     }
+    }
+    }
+
+    // Xbox release: cutscene 5 starts one second after the trigger, once.
+    if (!mXboxCin5Started) {
+    if (MissionUtility::GetTime() > mXboxCin5Time) {
+    mHandles[80] = MissionUtility::RunCin("Cin5", true, true);
+    mXboxCin5Started = true;
     }
     }
 
@@ -2560,12 +2577,9 @@ void Kashyyyk2Script::Execute()
     }
 
     // ---- +0x86a4  80 bytes ----
-    if (mFlags[50]) {
+    if (mXboxCin5Started) {         // Xbox release: was mFlags[50] (the trigger)
         if (!MissionUtility::IsCinRunning(mHandles[80])) {
         if (!mFlags[0]) {
-        if (MissionUtility::GetGameClock() < 510.0f) {
-        MissionUtility::BonusObjectiveComplete(mInts[11], true);
-        }
         MissionUtility::MissionSuccess();
         mFlags[0] = true;
         }

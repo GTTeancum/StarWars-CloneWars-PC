@@ -4332,6 +4332,31 @@ void Geonosis3Script::Execute()
     }
     }
 
+    // Xbox release: losing any member of a pod's escort while the pod is still alive fails
+    // the escort bonus (the GameCube build only counted the flock). Xbox 0x001D8B11.
+    if (MissionUtility::IsAlive(mHandles[289]) && !mFlags[105]) {
+        if (!MissionUtility::IsAlive(mHandles[166]) || !MissionUtility::IsAlive(mHandles[167])
+            || !MissionUtility::IsAlive(mHandles[168])) {
+        MissionUtility::BonusObjectiveFailed(mInts[5]);
+        mFlags[155] = false;
+        mFlags[105] = true;
+        }
+    }
+    if (MissionUtility::IsAlive(mHandles[290]) && !mFlags[116]) {
+        if (!MissionUtility::IsAlive(mHandles[169]) || !MissionUtility::IsAlive(mHandles[170])) {
+        MissionUtility::BonusObjectiveFailed(mInts[5]);
+        mFlags[155] = false;
+        mFlags[116] = true;
+        }
+    }
+    if (MissionUtility::IsAlive(mHandles[291]) && !mFlags[120]) {
+        if (!MissionUtility::IsAlive(mHandles[171]) || !MissionUtility::IsAlive(mHandles[172])
+            || !MissionUtility::IsAlive(mHandles[173])) {
+        MissionUtility::BonusObjectiveFailed(mInts[5]);
+        mFlags[155] = false;
+        mFlags[120] = true;
+        }
+    }
 }
 
 void Geonosis3Script::Setup()

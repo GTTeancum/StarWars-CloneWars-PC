@@ -2518,9 +2518,7 @@ void Kashyyyk3Script::Execute()
         mHandles[466] = MissionUtility::CreateObject("rep_tank_fighter1", "boss_battle_vehicles", 9, "", 10, -1);
         MissionUtility::SetWeaponOrd(mHandles[466], "rep_blaster_fighter1", "rep_blaster_fighter1_weak_ord");
         mHandles[475] = MissionUtility::CreateObject("cis_walk_assault", "boss_battle_vehicles", 10, "", 11, -1);
-        MissionUtility::SetWeaponOrd(mHandles[475], "cis_beam_walk", "cis_beam_walk_weak_ord");
         mHandles[476] = MissionUtility::CreateObject("cis_walk_assault", "boss_battle_vehicles", 11, "", 11, -1);
-        MissionUtility::SetWeaponOrd(mHandles[476], "cis_beam_walk", "cis_beam_walk_weak_ord");
         mHandles[467] = MissionUtility::CreateObject("rep_tank_fighter1", "boss_battle_vehicles", 12, "", 10, -1);
         MissionUtility::SetWeaponOrd(mHandles[467], "rep_blaster_fighter1", "rep_blaster_fighter1_weak_ord");
         mHandles[468] = MissionUtility::CreateObject("rep_tank_fighter1", "boss_battle_vehicles", 13, "", 10, -1);
@@ -2528,7 +2526,6 @@ void Kashyyyk3Script::Execute()
         mHandles[477] = MissionUtility::CreateObject("cis_tank_assault", "boss_battle_vehicles", 14, "", 11, -1);
         MissionUtility::SetWeaponOrd(mHandles[477], "cis_cannon_assault", "cis_cannon_assault_ord_weak");
         mHandles[478] = MissionUtility::CreateObject("cis_walk_assault", "boss_battle_vehicles", 15, "", 11, -1);
-        MissionUtility::SetWeaponOrd(mHandles[478], "cis_beam_walk", "cis_beam_walk_weak_ord");
         mHandles[469] = MissionUtility::CreateObject("rep_tank_fighter1", "boss_battle_vehicles", 16, "", 10, -1);
         MissionUtility::SetWeaponOrd(mHandles[469], "rep_blaster_fighter1", "rep_blaster_fighter1_weak_ord");
         mHandles[479] = MissionUtility::CreateObject("cis_tank_fighter", "boss_battle_vehicles", 17, "", 11, -1);
@@ -2537,6 +2534,24 @@ void Kashyyyk3Script::Execute()
         MissionUtility::SetWeaponOrd(mHandles[480], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
         mHandles[470] = MissionUtility::CreateObject("rep_tank_fighter1", "boss_battle_vehicles", 19, "", 10, -1);
         MissionUtility::SetWeaponOrd(mHandles[470], "rep_blaster_fighter1", "rep_blaster_fighter1_weak_ord");
+        // Xbox release: the three walkers keep their own weapons (no SetWeaponOrd above), and
+        // eight crowd armies fight on four paths around the boss battle (Xbox 0x001B6615).
+        mHandles[68] = MissionUtility::AddPropArmy(0, "boss_battle_inf_battle", 0, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[68], "boss_battle_inf_battle", false);
+        mHandles[67] = MissionUtility::AddPropArmy(1, "boss_battle_inf_battle", 1, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[67], "boss_battle_inf_battle", false);
+        mHandles[70] = MissionUtility::AddPropArmy(0, "prop_armyfight1", 0, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[70], "prop_armyfight1", false);
+        mHandles[69] = MissionUtility::AddPropArmy(1, "prop_armyfight1", 1, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[69], "prop_armyfight1", false);
+        mHandles[73] = MissionUtility::AddPropArmy(0, "prop_armyfight2", 0, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[73], "prop_armyfight2", false);
+        mHandles[71] = MissionUtility::AddPropArmy(1, "prop_armyfight2", 1, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[71], "prop_armyfight2", false);
+        mHandles[74] = MissionUtility::AddPropArmy(0, "prop_armyfight3", 0, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[74], "prop_armyfight3", false);
+        mHandles[72] = MissionUtility::AddPropArmy(1, "prop_armyfight3", 1, 1, 1.0f);
+        MissionUtility::SetPropArmyWayPoints(mHandles[72], "prop_armyfight3", false);
         mFlags[57] = false;
     }
 
@@ -2735,8 +2750,8 @@ void Kashyyyk3Script::Execute()
     if (mFlags[60]) {
         if (!MissionUtility::IsCinRunning(mHandles[102])) {
         if (!mFlags[41]) {
+        // Xbox release: the tank in slot 462 and the three walkers stay after the battle.
         MissionUtility::RemoveObject(mHandles[461]);
-        MissionUtility::RemoveObject(mHandles[462]);
         MissionUtility::RemoveObject(mHandles[463]);
         MissionUtility::RemoveObject(mHandles[464]);
         MissionUtility::RemoveObject(mHandles[465]);
@@ -2749,10 +2764,7 @@ void Kashyyyk3Script::Execute()
         MissionUtility::RemoveObject(mHandles[472]);
         MissionUtility::RemoveObject(mHandles[473]);
         MissionUtility::RemoveObject(mHandles[474]);
-        MissionUtility::RemoveObject(mHandles[475]);
-        MissionUtility::RemoveObject(mHandles[476]);
         MissionUtility::RemoveObject(mHandles[477]);
-        MissionUtility::RemoveObject(mHandles[478]);
         MissionUtility::RemoveObject(mHandles[479]);
         MissionUtility::RemoveObject(mHandles[480]);
         ResumeTimer(mTimer16);
@@ -3293,6 +3305,8 @@ void Kashyyyk3Script::Setup()
         mHandles[92] = MissionUtility::GetHandle("rock");
         mHandles[512] = MissionUtility::GetHandle("trap1");
         mHandles[513] = MissionUtility::GetHandle("trap2");
+        // Xbox release: the preload list as the Xbox build has it (Kashyyyk3Script::Setup at 0x001AE777).
+        // Shaymin's GameCube list differs; this keeps the shipped Xbox loading.
         MissionUtility::PreloadConfig("cis_inf_sbdroid_weak");
         MissionUtility::PreloadConfig("kas_crea_gnasp");
         MissionUtility::PreloadConfig("rep_tank_fighter1");
@@ -3311,6 +3325,16 @@ void Kashyyyk3Script::Setup()
         MissionUtility::PreloadConfig("kas_prop_lasertarget");
         MissionUtility::PreloadConfig("cis_boss_dapprentice");
         MissionUtility::PreloadConfig("cis_boss_harbinger_dest");
+        MissionUtility::PreloadConfig("rep_inf_obiwan_cin");
+        MissionUtility::PreloadConfig("rep_blaster_fighter1_weak_ord");
+        MissionUtility::PreloadConfig("cis_blaster_fighter_weak_ord");
+        MissionUtility::PreloadConfig("cis_cannon_assault_ord_weak");
+        MissionUtility::PreloadConfig("rep_tank_fighter");
+        MissionUtility::PreloadConfig("cis_cannon_assault_ord_weak");
+        MissionUtility::PreloadConfig("cis_beam_walk_weak_ord");
+        MissionUtility::PreloadConfig("kas_crea_maru_player");
+        MissionUtility::PreloadConfig("kas_crea_maru_bera");
+        MissionUtility::PreloadConfig("kas_crea_maru_wookiee");
 }
 
 SPMission *Kashyyyk3BuildMission()

@@ -1,0 +1,8 @@
+{
+  "_comment": "Engine functions tools/gc_bind.py cannot pin by call alignment (no recovered caller lines up call-for-call). Placed by MissionUtility.cpp's function order (the Xbox build lays a TU out in reverse) and checked against Shaymin's source: the call chain of each (MoveObject path -> Vector -> Matrix; GetDistance finds a piece by CRC; Land(Vector) builds a one-point Path and issues command 9). Keys are undname output.",
+  "float __cdecl MissionUtility::GetDistance(int,int,char const *)": "0006F9D0",
+  "void __cdecl MissionUtility::Land(int,class Vector,class Quat,float)": "00072420",
+  "void __cdecl MissionUtility::MoveObject(int,class Matrix const &,bool)": "000705B0",
+  "void __cdecl MissionUtility::MoveObject(int,class Vector const &,class Quat,bool)": "000706E0",
+  "void __cdecl MissionUtility::MoveObject(int,class Vector const &,bool)": "000707B0"
+}

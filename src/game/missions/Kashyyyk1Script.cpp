@@ -83,6 +83,7 @@ namespace MissionUtility
     float  GetDistance(int, int);
     float  GetDistance(int, int, const char*);
     float  GetGameClock();
+    float  GetTime();                 // Xbox release: used by the end-cutscene delay
     int    GetHandle(const char*);
     Matrix GetLocation(int);
     int    GetPlayerHandle(int);
@@ -203,8 +204,12 @@ public:
 
     char   mPad24;                       // +0x024
     bool   mFlags[155];                  // +0x025  the one-shot latches
-    char   mPadC0[8];                    // +0x0c0
-    int    mUnusedB;                     // +0x0c8  registered with count 0, never read
+    bool   mXboxEndCinArmed;             // +0x0c0  Xbox release: the 156th flag -- end-cutscene trigger hit
+    char   mPadC1[7];                    // +0x0c1
+    float  mXboxEndCinTime;              // +0x0c8  Xbox release: block B's one entry (GameCube: count 0,
+                                         //         never read) -- when the end cutscene starts
+    int    mPadCC;                       // +0x0cc  Xbox release: every later field sits 4 bytes on
+                                         //         (tools/gc_layout_check.py)
     Timer  mTimer0;                      // +0x0cc
     Timer  mTimer1,  mTimer2,  mTimer3,  mTimer4,  mTimer5;
     Timer  mTimer6,  mTimer7,  mTimer8,  mTimer9,  mTimer10;
@@ -1974,8 +1979,15 @@ void Kashyyyk1Script::Execute()
     }
 
     // ---- +0x4e30  248 bytes ----
+    // Xbox release: the trigger arms a one-second delay, then the end cutscene is set up.
+    if (!mXboxEndCinArmed) {
     if (MissionUtility::IsInsideRegion(mHandles[92], "endcin_trigger")) {
+    mXboxEndCinTime = MissionUtility::GetTime() + 1.0f;
+    mXboxEndCinArmed = true;
+    }
+    }
     if (!mFlags[69]) {
+    if (MissionUtility::GetTime() > mXboxEndCinTime) {
     mHandles[68] = MissionUtility::CreateObject("cis_bike_speeder_player", "end_cin_anakin_spawn", "anakin_stap_endcin", 0, -1, -1);
     mHandles[69] = MissionUtility::CreateObject("cis_bike_speeder_bera", "end_cin_bera_spawn", "bera_stap_endcin", 0, -1, -1);
     MissionUtility::SetVelocForward(mHandles[69], 400.0f);
@@ -2304,7 +2316,7 @@ Kashyyyk1Script::Kashyyyk1Script()
             mMatrixC.m[j][i] = 0.0f;
 
     mBoolCount = 155;   mBools  = mFlags;
-    mCountB    = 0;     mIntsB  = &mUnusedB;
+    mCountB    = 1;     mIntsB  = (int *)&mXboxEndCinTime;   // Xbox release: one entry
     mCountC    = 170;   mIntsC  = mHandles;
     mCountD    = 16;    mBlockD = mInts;
 }

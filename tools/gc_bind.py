@@ -282,6 +282,13 @@ def main():
             callee_va[k] = va
         else:
             conflicts.append((und.get(k, k), dict(c)))
+    # hand-checked placements (tools/gc_bind_manual.json) for what alignment
+    # cannot pin; they win over a vote
+    manual = json.load(open(os.path.join(HERE, "gc_bind_manual.json")))
+    for k in externs:
+        u = und.get(k)
+        if u in manual:
+            callee_va[k] = int(manual[u], 16)
     # fallback: an engine function not pinned by alignment but named, without
     # overloads, by the literal/call/TU passes
     overloads = collections.Counter(short_name(und[k]) for k in externs if k in und)

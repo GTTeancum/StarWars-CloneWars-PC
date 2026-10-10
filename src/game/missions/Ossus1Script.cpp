@@ -178,7 +178,8 @@ public:
 
     char   mPad24[1];
     bool   mFlags[81];            // +0x025  the one-shot latches
-    char   mPad76[6];                  // +0x076
+    bool   mXboxDropoffReported;        // +0x076  Xbox release: the 82nd flag -- drop-off bonus reported
+    char   mPad77[5];                  // +0x077
     int    mIntsB_[1];            // +0x07c
     char   mPad80[4];                  // +0x080
     int    mHandles[336];          // +0x084
@@ -1241,14 +1242,14 @@ void Ossus1Script::Execute()
         if (!mFlags[50]) {
         StopTimer(mTimer31);
         }
+        // Xbox release: the bonus is only decided here; it is reported once the drop-off
+        // cutscene ends (XboxReportDropoffBonus below).
         if (mTimer31 > 90.0f) {
-        MissionUtility::BonusObjectiveFailed(mInts[9]);
         mFlags[43] = false;
         mFlags[50] = true;
         }
         if (mTimer31 < 90.0f) {
         mFlags[43] = true;
-        MissionUtility::BonusObjectiveComplete(mInts[9], true);
         mFlags[50] = true;
         }
         MissionUtility::MoveObjectWithRotation(mHandles[260], "dropoffspot1start", 0, true);
@@ -1258,6 +1259,20 @@ void Ossus1Script::Execute()
         MissionUtility::OverrideSoundRange(mHandles[168], true);
         mHandles[4] = MissionUtility::RunCin("dropoffcin1", true, false);
         mFlags[48] = true;
+        }
+    }
+
+    // Xbox release: report the drop-off bonus once the drop-off cutscene is over (Xbox
+    // 0x00201868 and 0x00207F41).
+    if (!mXboxDropoffReported && mFlags[48]) {
+        if (!MissionUtility::IsCinRunning(mHandles[4])) {
+        if (mFlags[43]) {
+        MissionUtility::BonusObjectiveComplete(mInts[9], true);
+        }
+        if (!mFlags[43]) {
+        MissionUtility::BonusObjectiveFailed(mInts[9]);
+        }
+        mXboxDropoffReported = true;
         }
     }
 
@@ -3345,6 +3360,19 @@ void Ossus1Script::Execute()
     }
     }
 
+    // Xbox release: report the drop-off bonus once the drop-off cutscene is over (Xbox
+    // 0x00201868 and 0x00207F41).
+    if (!mXboxDropoffReported && mFlags[48]) {
+        if (!MissionUtility::IsCinRunning(mHandles[4])) {
+        if (mFlags[43]) {
+        MissionUtility::BonusObjectiveComplete(mInts[9], true);
+        }
+        if (!mFlags[43]) {
+        MissionUtility::BonusObjectiveFailed(mInts[9]);
+        }
+        mXboxDropoffReported = true;
+        }
+    }
 }
 
 void Ossus1Script::Setup()

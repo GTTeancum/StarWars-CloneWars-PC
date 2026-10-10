@@ -246,6 +246,8 @@ Thule1Script::~Thule1Script()
 
 void Thule1Script::Execute()
 {
+    // Xbox release: no SetWeaponOrd overrides for mHandles[497], [523] and [549] anywhere
+    // below (twelve calls in the GameCube build); those units keep their own weapons.
     // The mid-mission restore blocks read eight object-alive flags and one timer value into
     // stack locals. Frame slots follow declaration order within a size class (Rule 3 of
     // analysis/codegen_corpus.md): floats 0x1c/0x18, bools 0x17..0x10 then 0xf..0x8.
@@ -1358,7 +1360,6 @@ void Thule1Script::Execute()
         MissionUtility::SetWeaponOrd(mHandles[496], "cis_missile_wheeled", "cis_missile_wheeled_weak_ord");
         MissionUtility::Defend(mHandles[496], "battle1_defend", 0, 600.0f);
         mHandles[497] = MissionUtility::CreateObject("cis_walk_assault", "battle1_spawn2", 2, "", 11, -1);
-        MissionUtility::SetWeaponOrd(mHandles[497], "cis_beam_walk", "cis_beam_walk_weak_ord");
         MissionUtility::Defend(mHandles[497], "battle1_defend", 0, 600.0f);
         mHandles[498] = MissionUtility::CreateObject("cis_tank_fighter", "battle1_spawn2", 3, "", 11, -1);
         MissionUtility::SetWeaponOrd(mHandles[498], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
@@ -1810,7 +1811,6 @@ void Thule1Script::Execute()
     mHandles[496] = MissionUtility::CreateObject("cis_tank_wheeled", "battle1_spawn2", 1, "", 11, -1);
     MissionUtility::SetWeaponOrd(mHandles[496], "cis_missile_wheeled", "cis_missile_wheeled_weak_ord");
     mHandles[497] = MissionUtility::CreateObject("cis_walk_assault", "battle1_spawn2", 2, "", 11, -1);
-    MissionUtility::SetWeaponOrd(mHandles[497], "cis_beam_walk", "cis_beam_walk_weak_ord");
     mHandles[498] = MissionUtility::CreateObject("cis_tank_fighter", "battle1_spawn2", 3, "", 11, -1);
     MissionUtility::SetWeaponOrd(mHandles[498], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
     mHandles[494] = MissionUtility::CreateFlock();
@@ -1931,7 +1931,6 @@ void Thule1Script::Execute()
         mHandles[496] = MissionUtility::CreateObject("cis_tank_wheeled", "battle1_spawn2", 1, "", 11, -1);
         MissionUtility::SetWeaponOrd(mHandles[496], "cis_missile_wheeled", "cis_missile_wheeled_weak_ord");
         mHandles[497] = MissionUtility::CreateObject("cis_walk_assault", "battle1_spawn2", 2, "", 11, -1);
-        MissionUtility::SetWeaponOrd(mHandles[497], "cis_beam_walk", "cis_beam_walk_weak_ord");
         mHandles[498] = MissionUtility::CreateObject("cis_tank_fighter", "battle1_spawn2", 3, "", 11, -1);
         MissionUtility::SetWeaponOrd(mHandles[498], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
         mHandles[494] = MissionUtility::CreateFlock();
@@ -2012,7 +2011,6 @@ void Thule1Script::Execute()
     if (!mFlags[120]) {
         if (!MissionUtility::IsAlive(mHandles[497])) {
         mHandles[497] = MissionUtility::CreateObject("cis_walk_assault", "battle1_respawn_walk", 0, "", 11, -1);
-        MissionUtility::SetWeaponOrd(mHandles[497], "cis_beam_walk", "cis_beam_walk_weak_ord");
         MissionUtility::Goto(mHandles[497], "battle1_respawn_walk_goto", true);
         }
     }
@@ -2322,8 +2320,6 @@ void Thule1Script::Execute()
     MissionUtility::SetWeaponOrd(mHandles[522], "cis_missile_wheeled", "cis_missile_wheeled_weak_ord");
     MissionUtility::Defend(mHandles[522], "battle2_defend", 0, 600.0f);
     mHandles[523] = MissionUtility::CreateObject("cis_tank_assault", "battle2_spawn2", 2, "", 13, -1);
-    MissionUtility::SetWeaponOrd(mHandles[523], "cis_blaster_assault", "cis_blaster_assault_weak_ord");
-    MissionUtility::SetWeaponOrd(mHandles[523], "cis_cannon_assault", "cis_cannon_assault_weak_ord");
     MissionUtility::Defend(mHandles[523], "battle2_defend", 0, 600.0f);
     mHandles[524] = MissionUtility::CreateObject("cis_tank_fighter", "battle2_spawn2", 3, "", 13, -1);
     MissionUtility::SetWeaponOrd(mHandles[524], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
@@ -2362,8 +2358,6 @@ void Thule1Script::Execute()
     MissionUtility::SetWeaponOrd(mHandles[548], "cis_missile_wheeled", "cis_missile_wheeled_weak_ord");
     MissionUtility::Defend(mHandles[548], "battle3_defend", 0, 600.0f);
     mHandles[549] = MissionUtility::CreateObject("cis_tank_assault", "battle3_spawn2", 2, "", 15, -1);
-    MissionUtility::SetWeaponOrd(mHandles[549], "cis_blaster_assault", "cis_blaster_assault_weak_ord");
-    MissionUtility::SetWeaponOrd(mHandles[549], "cis_cannon_assault", "cis_cannon_assault_weak_ord");
     MissionUtility::Defend(mHandles[549], "battle3_defend", 0, 600.0f);
     mHandles[550] = MissionUtility::CreateObject("cis_tank_fighter", "battle3_spawn2", 3, "", 15, -1);
     MissionUtility::SetWeaponOrd(mHandles[550], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
@@ -2822,8 +2816,6 @@ void Thule1Script::Execute()
         mHandles[522] = MissionUtility::CreateObject("cis_tank_wheeled", "battle2_spawn2", 1, "", 13, -1);
         MissionUtility::SetWeaponOrd(mHandles[522], "cis_missile_wheeled", "cis_missile_wheeled_weak_ord");
         mHandles[523] = MissionUtility::CreateObject("cis_tank_assault", "battle2_spawn2", 2, "", 13, -1);
-        MissionUtility::SetWeaponOrd(mHandles[523], "cis_blaster_assault", "cis_blaster_assault_weak_ord");
-        MissionUtility::SetWeaponOrd(mHandles[523], "cis_cannon_assault", "cis_cannon_assault_weak_ord");
         mHandles[524] = MissionUtility::CreateObject("cis_tank_fighter", "battle2_spawn2", 3, "", 13, -1);
         MissionUtility::SetWeaponOrd(mHandles[524], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
         mHandles[525] = MissionUtility::CreateObject("cis_tank_fighter", "battle2_spawn2", 4, "", 13, -1);
@@ -2853,8 +2845,6 @@ void Thule1Script::Execute()
         mHandles[548] = MissionUtility::CreateObject("cis_tank_wheeled", "battle3_spawn2", 1, "", 15, -1);
         MissionUtility::SetWeaponOrd(mHandles[548], "cis_missile_wheeled", "cis_missile_wheeled_weak_ord");
         mHandles[549] = MissionUtility::CreateObject("cis_tank_assault", "battle3_spawn2", 2, "", 15, -1);
-        MissionUtility::SetWeaponOrd(mHandles[549], "cis_blaster_assault", "cis_blaster_assault_weak_ord");
-        MissionUtility::SetWeaponOrd(mHandles[549], "cis_cannon_assault", "cis_cannon_assault_weak_ord");
         mHandles[550] = MissionUtility::CreateObject("cis_tank_fighter", "battle3_spawn2", 3, "", 15, -1);
         MissionUtility::SetWeaponOrd(mHandles[550], "cis_blaster_fighter", "cis_blaster_fighter_weak_ord");
         mHandles[551] = MissionUtility::CreateObject("cis_tank_fighter", "battle3_spawn2", 4, "", 15, -1);
@@ -2880,6 +2870,10 @@ void Thule1Script::Execute()
         if (MissionUtility::IsLoaded(mHandles[305], mHandles[171])) {
         if (MissionUtility::IsLoaded(mHandles[306], mHandles[171])) {
         if (MissionUtility::IsLoaded(mHandles[307], mHandles[171])) {
+        // Xbox release: the carrier takes off with the cargo, as on the first run.
+        MissionUtility::TakeOff(mHandles[171]);
+        MissionUtility::SetTeamNum(mHandles[171], 1);
+        MissionUtility::StopCin(mHandles[294]);
         MissionUtility::RemoveObjectify("lpad", 0);
         MissionUtility::RemoveObjective(mInts[7]);
         MissionUtility::Objectify(mHandles[143], "missions.Thule1.marker.str0007", false, true, 0.0f);
@@ -3788,6 +3782,8 @@ void Thule1Script::Setup()
         mHandles[16] = MissionUtility::GetHandle("arm8");
         mHandles[17] = MissionUtility::GetHandle("arm9");
         mHandles[18] = MissionUtility::GetHandle("arm10");
+        // Xbox release: the preload list as the Xbox build has it (Thule1Script::Setup at 0x00196159).
+        // Shaymin's GameCube list differs; this keeps the shipped Xbox loading.
         MissionUtility::PreloadConfig("rep_walk_sixleg");
         MissionUtility::PreloadConfig("rep_tank_fighter1");
         MissionUtility::PreloadConfig("rep_fly_assault");
@@ -3801,12 +3797,10 @@ void Thule1Script::Setup()
         MissionUtility::PreloadConfig("efarm_explo");
         MissionUtility::PreloadConfig("smoke_bigblack");
         MissionUtility::PreloadConfig("rep_fly_fighter");
-        MissionUtility::PreloadConfig("cis_cannon_assault_weak_ord");
-        MissionUtility::PreloadConfig("cis_blaster_assault_weak_ord");
-        MissionUtility::PreloadConfig("cis_beam_walk_weak_ord");
         MissionUtility::PreloadConfig("cis_blaster_fighter_weak_ord");
         MissionUtility::PreloadConfig("cis_fly_fighter");
         MissionUtility::PreloadConfig("cis_missile_wheeled_weak_ord");
+        MissionUtility::PreloadConfig("cis_mortar_assault_xpl");
 }
 
 SPMission *Thule1BuildMission()

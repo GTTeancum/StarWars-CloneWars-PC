@@ -889,8 +889,10 @@ extern "C" float __cdecl gbt_109(uint32_t a0, uint32_t a1)
 /* float __cdecl MissionUtility::GetDistance(int,int,char const *) */
 extern "C" float __cdecl gbt_110(uint32_t a0, uint32_t a1, uint32_t a2)
 {
-    gb_trap("float __cdecl MissionUtility::GetDistance(int,int,char const *)");
-    return 0.0f;
+    uint32_t a[] = { a0, a1, a2 };
+    double r = 0;
+    gb_call(0x0006F9D0u, 0, "fiis", a, &r, "MissionUtility::GetDistance");
+    return (float)r;
 }
 #pragma comment(linker, "/alternatename:?GetDistance@MissionUtility@@YAMHHPBD@Z=_gbt_110")
 
@@ -1253,7 +1255,8 @@ extern "C" void __cdecl gbt_153(uint32_t a0, uint32_t a1, uint32_t a2, uint32_t 
 /* void __cdecl MissionUtility::Land(int,class Vector,class Quat,float) */
 extern "C" void __cdecl gbt_154(uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6, uint32_t a7, uint32_t a8)
 {
-    gb_trap("void __cdecl MissionUtility::Land(int,class Vector,class Quat,float)");
+    uint32_t a[] = { a0, a1, a2, a3, a4, a5, a6, a7, a8 };
+    gb_call(0x00072420u, 0, "viq12q16i", a, 0, "MissionUtility::Land");
 }
 #pragma comment(linker, "/alternatename:?Land@MissionUtility@@YAXHVVector@@VQuat@@M@Z=_gbt_154")
 
@@ -1417,7 +1420,8 @@ extern "C" void __cdecl gbt_175(void)
 /* void __cdecl MissionUtility::MoveObject(int,class Vector const &,class Quat,bool) */
 extern "C" void __cdecl gbt_176(uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 {
-    gb_trap("void __cdecl MissionUtility::MoveObject(int,class Vector const &,class Quat,bool)");
+    uint32_t a[] = { a0, a1, a2, a3, a4, a5, a6 };
+    gb_call(0x000706E0u, 0, "vip12q16i", a, 0, "MissionUtility::MoveObject");
 }
 #pragma comment(linker, "/alternatename:?MoveObject@MissionUtility@@YAXHABVVector@@VQuat@@_N@Z=_gbt_176")
 

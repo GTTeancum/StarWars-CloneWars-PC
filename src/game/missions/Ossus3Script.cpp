@@ -78,6 +78,7 @@ namespace MissionUtility
     float  GetDistance(int, int);
     int    GetFlockCount(int);
     float  GetGameClock();
+    float  GetTime();                 // Xbox release: used by the phase 16 delay
     int    GetHandle(const char*);
     int    GetPlayerHandle(int);
     int    GetRandomInt(int, int);
@@ -199,7 +200,7 @@ public:
     Ossus3Script()
     {
         mBoolCount  = 147;           mBools = mFlags;
-        mCountB     = 0;             mIntsB = mIntsB_;
+        mCountB     = 1;             mIntsB = (int *)&mXboxPhaseTime;   // Xbox release: one entry
         mCountC     = 321;           mIntsC = mHandles;
         mCountD     = 5;             mBlockD = mInts;
     }
@@ -210,8 +211,10 @@ public:
     char   mPad24[1];
     bool   mFlags[147];            // +0x025  the one-shot latches
     char   mPadB8[8];                  // +0x0b8
-    int    mIntsB_[1];            // +0x0c0
-    char   mPadC4[4];                  // +0x0c4
+    float  mXboxPhaseTime;        // +0x0c0  Xbox release: block B's one entry -- when phase 16 begins
+    int    mXboxShift;            // +0x0c4  Xbox release: every later field sits 4 bytes on
+                                  //         (tools/gc_layout_check.py)
+    char   mPadC4[4];                  // +0x0c8  (GameCube +0x0c4)
     int    mHandles[321];          // +0x0c8
     char   mPad5CC[8];                  // +0x5cc
     int    mInts[5];             // +0x5d4
@@ -1976,7 +1979,7 @@ void Ossus3Script::Execute()
         if (mInts[3] == 2) {
         MissionUtility::QueueSound("CTINT_21", 1.0f, 0.0f, 0.0f, "", 0, "");
         }
-        MissionUtility::QueueSound("CTR10_17", 1.0f, 0.0f, 0.0f, "", 0, "");
+        // Xbox release: no "CTR10_17" line here.
         mInts[2] = MissionUtility::GetFlockCount(mHandles[189]) + MissionUtility::GetFlockCount(mHandles[176]);
         mFlags[38] = false;
         }
@@ -1995,7 +1998,7 @@ void Ossus3Script::Execute()
         if (mInts[3] == 2) {
         MissionUtility::QueueSound("CTINT_21", 1.0f, 0.0f, 0.0f, "", 0, "");
         }
-        MissionUtility::QueueSound("CTR10_17", 1.0f, 0.0f, 0.0f, "", 0, "");
+        // Xbox release: no "CTR10_17" line here.
         mInts[2] = MissionUtility::GetFlockCount(mHandles[190]) + MissionUtility::GetFlockCount(mHandles[177]);
         mFlags[38] = false;
         }
@@ -2672,10 +2675,16 @@ void Ossus3Script::Execute()
         }
         StopTimer(mTimer16);
         MissionUtility::FlushSoundQueue();
-        mPhase = 16;
+        mXboxPhaseTime = MissionUtility::GetTime() + 2.0f;   // Xbox release: was mPhase = 16
         BeginTimer(mTimer8);
         mFlags[69] = true;
         }
+    }
+
+    // Xbox release: phase 16 begins two seconds after the techno-union ship falls.
+    if (MissionUtility::GetTime() > mXboxPhaseTime) {
+    mPhase = 16;
+    mXboxPhaseTime = MissionUtility::GetTime() + 1000000.0f;
     }
 
     // ---- +0x7814  84 bytes ----
