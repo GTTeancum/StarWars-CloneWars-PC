@@ -70,11 +70,20 @@ set(GAME_SOURCES
     src/overrides/recomp_manual.c
 )
 # Recovered source (Shaymin's GameCube decompilation) runs through the bridge in
-# src/game/glue. Off until the generated glue exists: tools/gc_bind.py.
-option(CW_RECOVERED_GAME "Build the recovered original source in src/game" OFF)
-if(CW_RECOVERED_GAME)
+# src/game/glue; the generated glue (glue_gen.cpp) comes from tools/gc_bind.py.
+# 32-bit only: the bridge is x86 (thiscall/fastcall).
+option(CW_RECOVERED_GAME "Build the recovered original source in src/game" ON)
+if(CW_RECOVERED_GAME AND CMAKE_SIZEOF_VOID_P EQUAL 4)   # the bridge is x86 (thiscall/fastcall)
     file(GLOB_RECURSE GAME_RECOVERED_SOURCES CONFIGURE_DEPENDS "src/game/*.cpp" "src/game/*.c")
+    # CWScript.cpp is the engine-side script host: it registers with the frame
+    # loop from static constructors and touches engine data the bridge does
+    # not map. Kept as reference, not built. glue_fallback.c is for builds
+    # without the bridge.
+    list(FILTER GAME_RECOVERED_SOURCES EXCLUDE REGEX "/(CWScript\.cpp|glue_fallback\.c)$")
     list(APPEND GAME_SOURCES ${GAME_RECOVERED_SOURCES})
+else()
+    # Hooked functions resolve to their translated bodies (sub_X_gen).
+    list(APPEND GAME_SOURCES src/game/glue/glue_fallback.c)
 endif()
 
 # The recomp pipeline also generates a dispatch header and function declarations.

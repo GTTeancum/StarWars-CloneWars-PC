@@ -36,7 +36,9 @@ uint32_t gb_guest(const void *host);
  *               copied into title memory for the call and copied back after
  * `self` is the guest `this` for a member function (0 otherwise).
  * A float/double result is stored in *fret. */
-uint32_t gb_call(uint32_t va, uint32_t self, const char *spec, const uint32_t *args, double *fret);
+uint32_t gb_call(uint32_t va, uint32_t self, const char *spec, const uint32_t *args, double *fret,
+                 const char *name);
+/* CW_BRIDGE_TRACE=1 logs every gb_call with its name, arguments and result. */
 
 /* Inside a hook (a native function standing in for recompiled sub_XXXXXXXX):
  * the guest `this` (ecx), and the return: eax plus the bytes of stack
@@ -47,6 +49,12 @@ void gb_return(uint32_t eax, uint32_t popped_arg_bytes);
 
 /* Unmapped engine function reached from native code: logged once per name. */
 void gb_trap(const char *name);
+
+/* First entry into a recovered function (hooks log it once). */
+void gb_note(const char *name);
+
+/* 0 when CW_RECOVERED=0: hooks run the translated body instead. */
+int gb_recovered_on(void);
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@ uint32_t gb_guest(const void *host)
     intptr_t d = (intptr_t)host - (intptr_t)g_xbox_mem_offset;
     if (!host)
         return 0;
-    if (d >= 0x10000 && (uintptr_t)d < (uintptr_t)g_xbox_map_size)
+    if (d >= 0x10000 && (uintptr_t)d < (g_xbox_map_size ? g_xbox_map_size : g_xbox_total_ram))
         return (uint32_t)d;
     return 0;
 }
@@ -73,9 +73,13 @@ static int spec_num(const char **p)
     return n;
 }
 
-uint32_t gb_call(uint32_t va, uint32_t self, const char *spec, const uint32_t *args, double *fret)
+uint32_t gb_call(uint32_t va, uint32_t self, const char *spec, const uint32_t *args, double *fret,
+                 const char *name)
 {
+    static int trace = -1;
+    uint32_t ret_val;
     uint32_t sp0 = g_esp, vals[32], nv = 0, i;
+    char kinds[32];
     struct { void *host; uint32_t guest, n; } back[8];
     int nback = 0;
     char ret = *spec++;
@@ -89,11 +93,12 @@ uint32_t gb_call(uint32_t va, uint32_t self, const char *spec, const uint32_t *a
     /* Marshal left to right into dwords as they will sit on the guest stack. */
     while (*spec) {
         char c = *spec++;
+        kinds[nv] = c;
         if (c == 'i') {
             vals[nv++] = *a++;
         } else if (c == 'q') {
             int n = spec_num(&spec), k;
-            for (k = 0; k < (n + 3) / 4; k++) vals[nv++] = *a++;
+            for (k = 0; k < (n + 3) / 4; k++) { kinds[nv] = 'i'; vals[nv++] = *a++; }
         } else if (c == 's') {
             const char *h = (const char *)(uintptr_t)*a++;
             uint32_t g = gb_guest(h);
@@ -124,7 +129,23 @@ uint32_t gb_call(uint32_t va, uint32_t self, const char *spec, const uint32_t *a
         g_fp_top = (g_fp_top + 1) & 7;
         if (fret) *fret = v;
     }
-    return ret == 'b' ? (g_eax & 0xFF) : g_eax;
+    ret_val = ret == 'b' ? (g_eax & 0xFF) : g_eax;
+    if (trace < 0) trace = getenv("CW_BRIDGE_TRACE") ? atoi(getenv("CW_BRIDGE_TRACE")) : 0;
+    if (trace) {
+        fprintf(stderr, "[CALL] %s", name ? name : "?");
+        if (self) fprintf(stderr, "@%08X", self);
+        for (i = 0; i < (uint32_t)nback; i++) fprintf(stderr, "{copy %p->%08X}", back[i].host, back[i].guest);
+        fputc('(', stderr);
+        for (i = 0; i < nv; i++) {
+            char c = kinds[i];
+            if (c == 's' && vals[i]) fprintf(stderr, "%s\"%s\"", i ? ", " : "", (const char *)XBOX_PTR(vals[i]));
+            else fprintf(stderr, "%s%u", i ? ", " : "", vals[i]);
+        }
+        if (ret == 'f') fprintf(stderr, ") = %g\n", fret ? *fret : 0.0);
+        else fprintf(stderr, ") = %u\n", ret_val);
+        fflush(stderr);
+    }
+    return ret_val;
 }
 
 /* ---- hooks: native code standing in for recompiled functions ------------- */
@@ -139,6 +160,19 @@ void gb_return(uint32_t r, uint32_t popped)
 {
     g_eax = r;
     g_esp += 4u + popped;
+}
+
+int gb_recovered_on(void)
+{
+    static int on = -1;
+    if (on < 0) on = getenv("CW_RECOVERED") ? atoi(getenv("CW_RECOVERED")) : 1;
+    return on;
+}
+
+void gb_note(const char *name)
+{
+    fprintf(stderr, "[RECOVERED] running %s\n", name);
+    fflush(stderr);
 }
 
 void gb_trap(const char *name)

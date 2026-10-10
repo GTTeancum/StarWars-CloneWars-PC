@@ -132,8 +132,10 @@ base. Recovered original source replaces it piece by piece as it is verified.
 | `tools/` | Seed lists for the disassembler and helper scripts; `gc_*.py` match recovered source to the Xbox build |
 | `patches/xboxrecomp.patch` | Changes to the xboxrecomp toolkit |
 
-The recovered source is built with `-DCW_RECOVERED_GAME=ON`. It is off by
-default while the bridge is completed.
+The recovered source is on by default in the 32-bit build (`CW_RECOVERED_GAME`).
+`tools/gc_bind.py` generates the glue after the recovered files change. At run
+time, `CW_RECOVERED=0` in the environment runs the translated code instead, and
+`CW_BRIDGE_TRACE=1` logs every call the recovered code makes into the engine.
 
 ## Credits
 
