@@ -12,6 +12,12 @@ cmake_minimum_required(VERSION 3.20)
 
 project(CloneWars C CXX)
 
+# 32-bit only: the renderer uses Microsoft's d3d8.dll, which Windows ships only
+# as a 32-bit DLL, and the recovered-source bridge is x86 (thiscall/fastcall).
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR "Build for Win32: cmake -S . -B build32 -A Win32")
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
@@ -71,9 +77,8 @@ set(GAME_SOURCES
 )
 # Recovered source (Shaymin's GameCube decompilation) runs through the bridge in
 # src/game/glue; the generated glue (glue_gen.cpp) comes from tools/gc_bind.py.
-# 32-bit only: the bridge is x86 (thiscall/fastcall).
 option(CW_RECOVERED_GAME "Build the recovered original source in src/game" ON)
-if(CW_RECOVERED_GAME AND CMAKE_SIZEOF_VOID_P EQUAL 4)   # the bridge is x86 (thiscall/fastcall)
+if(CW_RECOVERED_GAME)
     file(GLOB_RECURSE GAME_RECOVERED_SOURCES CONFIGURE_DEPENDS "src/game/*.cpp" "src/game/*.c")
     # CWScript.cpp is the engine-side script host: it registers with the frame
     # loop from static constructors and touches engine data the bridge does
@@ -82,7 +87,8 @@ if(CW_RECOVERED_GAME AND CMAKE_SIZEOF_VOID_P EQUAL 4)   # the bridge is x86 (thi
     list(FILTER GAME_RECOVERED_SOURCES EXCLUDE REGEX "/(CWScript\.cpp|glue_fallback\.c)$")
     list(APPEND GAME_SOURCES ${GAME_RECOVERED_SOURCES})
 else()
-    # Hooked functions resolve to their translated bodies (sub_X_gen).
+    # -DCW_RECOVERED_GAME=OFF: hooked functions resolve to their translated
+    # bodies (sub_X_gen).
     list(APPEND GAME_SOURCES src/game/glue/glue_fallback.c)
 endif()
 
@@ -129,36 +135,33 @@ if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
 endif()
 
-# 32-bit build: the renderer uses Microsoft's own d3d8.dll, which Windows only
-# ships as a 32-bit DLL. Named CloneWars32.exe so it stages beside the x64
-# build. The image stays at its fixed default base: guest RAM is mapped at
-# 0x20000000 and the Xbox's high windows wrap to 0x10000000-0x1F100000 (see
-# xbox_MemoryLayoutInit), and ASLR could otherwise drop the image there.
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME CloneWars32)
-    # The DX8 renderer (src/platform/d3d8.c) builds against the DirectX 8.1 SDK's
-    # d3d8.h / d3d8.lib; without the SDK it compiles as pass-through wrappers.
-    set(DXSDK8_DIR "C:/Program Files (x86)/DXSDK" CACHE PATH "DirectX 8.1 SDK root")
-    if(EXISTS "${DXSDK8_DIR}/include/d3d8.h" AND EXISTS "${DXSDK8_DIR}/lib/d3d8.lib")
-        # Only the three D3D8 headers are copied out: the SDK's include
-        # directory also carries 2001-era basetsd.h/winnt.h pieces that break
-        # the current Windows SDK headers if it is put on the search path.
-        set(DX8_HEADER_DIR "${CMAKE_BINARY_DIR}/dx8include")
-        file(COPY "${DXSDK8_DIR}/include/d3d8.h"
-                  "${DXSDK8_DIR}/include/d3d8types.h"
-                  "${DXSDK8_DIR}/include/d3d8caps.h"
-             DESTINATION "${DX8_HEADER_DIR}")
-        set_source_files_properties(src/platform/d3d8.c PROPERTIES
-            COMPILE_DEFINITIONS CW_HAVE_D3D8=1
-            INCLUDE_DIRECTORIES "${DX8_HEADER_DIR}")
-        target_link_libraries(${PROJECT_NAME} PRIVATE "${DXSDK8_DIR}/lib/d3d8.lib")
-        message(STATUS "DX8 renderer: using ${DXSDK8_DIR}")
-    else()
-        message(STATUS "DX8 renderer: DirectX 8.1 SDK not found at ${DXSDK8_DIR}; wrappers only")
-    endif()
-    if(MSVC)
-        target_link_options(${PROJECT_NAME} PRIVATE /DYNAMICBASE:NO /BASE:0x00400000)
-    endif()
+# Named CloneWars32.exe, the name players already launch. The image stays at
+# its fixed default base: guest RAM is mapped at 0x20000000 and the Xbox's high
+# windows wrap to 0x10000000-0x1F100000 (see xbox_MemoryLayoutInit), and ASLR
+# could otherwise drop the image there.
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME CloneWars32)
+# The DX8 renderer (src/platform/d3d8.c) builds against the DirectX 8.1 SDK's
+# d3d8.h / d3d8.lib; without the SDK it compiles as pass-through wrappers.
+set(DXSDK8_DIR "C:/Program Files (x86)/DXSDK" CACHE PATH "DirectX 8.1 SDK root")
+if(EXISTS "${DXSDK8_DIR}/include/d3d8.h" AND EXISTS "${DXSDK8_DIR}/lib/d3d8.lib")
+    # Only the three D3D8 headers are copied out: the SDK's include
+    # directory also carries 2001-era basetsd.h/winnt.h pieces that break
+    # the current Windows SDK headers if it is put on the search path.
+    set(DX8_HEADER_DIR "${CMAKE_BINARY_DIR}/dx8include")
+    file(COPY "${DXSDK8_DIR}/include/d3d8.h"
+              "${DXSDK8_DIR}/include/d3d8types.h"
+              "${DXSDK8_DIR}/include/d3d8caps.h"
+         DESTINATION "${DX8_HEADER_DIR}")
+    set_source_files_properties(src/platform/d3d8.c PROPERTIES
+        COMPILE_DEFINITIONS CW_HAVE_D3D8=1
+        INCLUDE_DIRECTORIES "${DX8_HEADER_DIR}")
+    target_link_libraries(${PROJECT_NAME} PRIVATE "${DXSDK8_DIR}/lib/d3d8.lib")
+    message(STATUS "DX8 renderer: using ${DXSDK8_DIR}")
+else()
+    message(STATUS "DX8 renderer: DirectX 8.1 SDK not found at ${DXSDK8_DIR}; wrappers only")
+endif()
+if(MSVC)
+    target_link_options(${PROJECT_NAME} PRIVATE /DYNAMICBASE:NO /BASE:0x00400000)
 endif()
 
 # ── Game-specific additions ─────────────────────────────────────
@@ -210,4 +213,4 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             "$<TARGET_FILE:${PROJECT_NAME}>" "${CLONEWARS_STAGE_DIR}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "$<TARGET_PDB_FILE:${PROJECT_NAME}>" "${CLONEWARS_STAGE_DIR}"
-    COMMENT "Staging CloneWars.exe into the game directory")
+    COMMENT "Staging CloneWars32.exe into the game directory")

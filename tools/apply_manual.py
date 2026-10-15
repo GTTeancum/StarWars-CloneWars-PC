@@ -82,8 +82,8 @@ def main():
         defs = set(definition_names(path))
         names |= defs
         # A replacement that calls sub_X_gen keeps the generated body under
-        # that name instead of deleting it: platform/d3d8.c replaces Direct3D on
-        # the 32-bit build and falls through to the title's own code on x64.
+        # that name instead of deleting it, so the replacement can fall through
+        # to the title's own code.
         with open(path, encoding="utf-8", errors="replace") as fh:
             text = fh.read()
         for n in defs:
