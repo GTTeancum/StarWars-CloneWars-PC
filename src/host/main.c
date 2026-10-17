@@ -241,6 +241,21 @@ static LONG CALLBACK veh_handler(PEXCEPTION_POINTERS ep)
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+/* --headlessMuted: run unattended for automated tests (tools/smoke_maps.py).
+ * The window is created hidden. Audio runs in full -- decoding, mixing, the
+ * output device -- but each block is replaced with silence just before it is
+ * played; the game's own volume settings are untouched. A crash
+ * ends the process instead of waiting on an error dialog. */
+int cw_headless_muted(void)
+{
+    static int on = -1;
+    if (on < 0) {
+        const char *c = GetCommandLineA();
+        on = c && strstr(c, "--headlessMuted") != NULL;
+    }
+    return on;
+}
+
 /* ── WinMain ───────────────────────────────────────────────── */
 
 /* See RECOMP_PROTECT_RDATA in main(). */
@@ -347,6 +362,43 @@ static void watch_start(void)
  * kernel is spinning somewhere in its own code; this says where. */
 static HANDLE s_main_thread;
 
+/* The game thread's native call chain, printed by the --headlessMuted status
+ * thread when frames stop: each sub_XXXXXXXX is the guest function at that
+ * address, so a hang names the loop and its callers. */
+void hle_dump_main_stack(void)
+{
+    CONTEXT c;
+    STACKFRAME64 f;
+    int depth;
+    if (!s_main_thread || SuspendThread(s_main_thread) == (DWORD)-1)
+        return;
+    memset(&c, 0, sizeof c);
+    c.ContextFlags = CONTEXT_FULL;
+    GetThreadContext(s_main_thread, &c);
+    memset(&f, 0, sizeof f);
+#ifdef _M_IX86
+    f.AddrPC.Offset = c.Eip; f.AddrFrame.Offset = c.Ebp; f.AddrStack.Offset = c.Esp;
+#endif
+    f.AddrPC.Mode = f.AddrFrame.Mode = f.AddrStack.Mode = AddrModeFlat;
+    fprintf(stderr, "[STACK] game thread:\n");
+    for (depth = 0; depth < 40; depth++) {
+        char buf[sizeof(SYMBOL_INFO) + 256];
+        SYMBOL_INFO *si = (SYMBOL_INFO *)buf;
+        DWORD64 disp = 0;
+        if (!StackWalk64(IMAGE_FILE_MACHINE_I386, GetCurrentProcess(), s_main_thread, &f, &c,
+                         NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL) || !f.AddrPC.Offset)
+            break;
+        memset(buf, 0, sizeof buf);
+        si->SizeOfStruct = sizeof(SYMBOL_INFO);
+        si->MaxNameLen = 255;
+        if (!SymFromAddr(GetCurrentProcess(), f.AddrPC.Offset, &disp, si))
+            strcpy(si->Name, "?");
+        fprintf(stderr, "  %2d %s+0x%X\n", depth, si->Name, (unsigned)disp);
+    }
+    fflush(stderr);
+    ResumeThread(s_main_thread);
+}
+
 static DWORD WINAPI main_sampler(LPVOID unused)
 {
     /* 100 samples a second; every 10 s print the top functions. */
@@ -425,6 +477,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     setvbuf(stderr, NULL, _IONBF, 0);
 
     printf("=== Star Wars: The Clone Wars - Static Recompilation ===\n");
+    if (cw_headless_muted()) {
+        SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+        printf("--headlessMuted: hidden window; sound mixed and sent to the device as silence\n");
+    }
     printf("Loading XBE...\n");
 
     /* Install VEH handler (first handler in chain) */
@@ -440,6 +496,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     printf("Game directory: %s\n", game_dir);
 
     if (!load_xbe(xbe_path, &xbe_data, &xbe_size)) {
+        if (!cw_headless_muted())
         MessageBoxA(NULL, "Failed to load default.xbe.\n"
                     "This executable must sit in the game directory, beside "
                     "default.xbe, data.zwp and the Bins/Data/Movies folders.",
@@ -451,6 +508,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     /* Step 2: Initialize Xbox memory layout */
     printf("Initializing Xbox memory layout...\n");
     if (!xbox_MemoryLayoutInit(xbe_data, xbe_size)) {
+        if (!cw_headless_muted())
         MessageBoxA(NULL, "Failed to initialize Xbox memory layout.\n"
                     "The required virtual address range may be unavailable.",
                     "Recomp", MB_ICONERROR);
@@ -460,6 +518,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     g_xbox_mem_offset = xbox_GetMemoryOffset();
     printf("Xbox memory mapped. Offset: 0x%llX\n", (unsigned long long)g_xbox_mem_offset);
+    if (cw_headless_muted()) {
+        extern void hle_smoke_start(void);
+        hle_smoke_start();
+    }
 
     /* Step 3: Initialize Xbox kernel */
     printf("Initializing Xbox kernel replacement...\n");
@@ -545,9 +607,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
      * consume the pushbuffer; rasterising it too starves the game thread. */
     if (getenv("CW_D3D8") && getenv("CW_D3D8")[0] == '1' && !getenv("RECOMP_PB_NORASTER"))
         _putenv("RECOMP_PB_NORASTER=1");
-    if (getenv("CW_SAMPLE_MAIN")) {
+    if (getenv("CW_SAMPLE_MAIN") || cw_headless_muted())
         DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(),
                         &s_main_thread, 0, FALSE, DUPLICATE_SAME_ACCESS);
+    if (getenv("CW_SAMPLE_MAIN")) {
         CloseHandle(CreateThread(NULL, 0, main_sampler, NULL, 0, NULL));
     }
     {

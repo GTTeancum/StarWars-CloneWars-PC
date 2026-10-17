@@ -2301,7 +2301,7 @@ extern "C" void sub_00177426_gen(void);
 extern "C" void sub_00177426(void);
 void sub_00177426(void)
 {
-    if (!gb_recovered_on()) { sub_00177426_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_00177426_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::GiveAmmo");
     gbh_00177426((uint32_t)(uintptr_t)gb_host(gb_this()), 0, gb_arg(0), gb_arg(1));
     gb_return(0, 8);
@@ -2314,7 +2314,7 @@ extern "C" void sub_001774A8_gen(void);
 extern "C" void sub_001774A8(void);
 void sub_001774A8(void)
 {
-    if (!gb_recovered_on()) { sub_001774A8_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_001774A8_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::GiveHealth");
     gbh_001774A8((uint32_t)(uintptr_t)gb_host(gb_this()), 0, gb_arg(0), gb_arg(1));
     gb_return(0, 8);
@@ -2327,7 +2327,7 @@ extern "C" void sub_0017B46A_gen(void);
 extern "C" void sub_0017B46A(void);
 void sub_0017B46A(void)
 {
-    if (!gb_recovered_on()) { sub_0017B46A_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017B46A_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::AllDead");
     uint32_t r = (uint32_t)gbh_0017B46A((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(r, 0);
@@ -2340,7 +2340,7 @@ extern "C" void sub_0017B4AB_gen(void);
 extern "C" void sub_0017B4AB(void);
 void sub_0017B4AB(void)
 {
-    if (!gb_recovered_on()) { sub_0017B4AB_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017B4AB_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::Setup");
     gbh_0017B4AB((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2353,7 +2353,7 @@ extern "C" void sub_0017B56D_gen(void);
 extern "C" void sub_0017B56D(void);
 void sub_0017B56D(void)
 {
-    if (!gb_recovered_on()) { sub_0017B56D_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017B56D_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::OnePlayerInit");
     gbh_0017B56D((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2366,7 +2366,7 @@ extern "C" void sub_0017BBC0_gen(void);
 extern "C" void sub_0017BBC0(void);
 void sub_0017BBC0(void)
 {
-    if (!gb_recovered_on()) { sub_0017BBC0_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017BBC0_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::TwoPlayerInit");
     gbh_0017BBC0((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2379,7 +2379,7 @@ extern "C" void sub_0017C213_gen(void);
 extern "C" void sub_0017C213(void);
 void sub_0017C213(void)
 {
-    if (!gb_recovered_on()) { sub_0017C213_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017C213_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::ThreePlayerInit");
     gbh_0017C213((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2392,7 +2392,7 @@ extern "C" void sub_0017C866_gen(void);
 extern "C" void sub_0017C866(void);
 void sub_0017C866(void)
 {
-    if (!gb_recovered_on()) { sub_0017C866_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017C866_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::FourPlayerInit");
     gbh_0017C866((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2405,7 +2405,7 @@ extern "C" void sub_0017CEBD_gen(void);
 extern "C" void sub_0017CEBD(void);
 void sub_0017CEBD(void)
 {
-    if (!gb_recovered_on()) { sub_0017CEBD_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017CEBD_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::GiveAmmo");
     gbh_0017CEBD((uint32_t)(uintptr_t)gb_host(gb_this()), 0, gb_arg(0), gb_arg(1));
     gb_return(0, 8);
@@ -2418,7 +2418,7 @@ extern "C" void sub_0017CF30_gen(void);
 extern "C" void sub_0017CF30(void);
 void sub_0017CF30(void)
 {
-    if (!gb_recovered_on()) { sub_0017CF30_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017CF30_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::GiveHealth");
     gbh_0017CF30((uint32_t)(uintptr_t)gb_host(gb_this()), 0, gb_arg(0), gb_arg(1));
     gb_return(0, 8);
@@ -2431,7 +2431,7 @@ extern "C" void sub_0017CFB2_gen(void);
 extern "C" void sub_0017CFB2(void);
 void sub_0017CFB2(void)
 {
-    if (!gb_recovered_on()) { sub_0017CFB2_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017CFB2_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::SpawnEnemies");
     gbh_0017CFB2((uint32_t)(uintptr_t)gb_host(gb_this()), 0, gb_arg(0), gb_arg(1));
     gb_return(0, 8);
@@ -2444,7 +2444,7 @@ extern "C" void sub_0017D19F_gen(void);
 extern "C" void sub_0017D19F(void);
 void sub_0017D19F(void)
 {
-    if (!gb_recovered_on()) { sub_0017D19F_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003598BCu) { sub_0017D19F_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi17Script::Execute");
     gbh_0017D19F((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2457,7 +2457,7 @@ extern "C" void sub_0017DC4D_gen(void);
 extern "C" void sub_0017DC4D(void);
 void sub_0017DC4D(void)
 {
-    if (!gb_recovered_on()) { sub_0017DC4D_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359900u) { sub_0017DC4D_gen(); return; }
     static int seen; if (!seen++) gb_note("multi15Script::Execute");
     gbh_0017DC4D((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2470,7 +2470,7 @@ extern "C" void sub_0017DD32_gen(void);
 extern "C" void sub_0017DD32(void);
 void sub_0017DD32(void)
 {
-    if (!gb_recovered_on()) { sub_0017DD32_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0035991Cu) { sub_0017DD32_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi14Script::Execute");
     gbh_0017DD32((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2483,7 +2483,7 @@ extern "C" void sub_0017DE2A_gen(void);
 extern "C" void sub_0017DE2A(void);
 void sub_0017DE2A(void)
 {
-    if (!gb_recovered_on()) { sub_0017DE2A_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359968u) { sub_0017DE2A_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi13Script::Execute");
     gbh_0017DE2A((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2496,7 +2496,7 @@ extern "C" void sub_0017DF1A_gen(void);
 extern "C" void sub_0017DF1A(void);
 void sub_0017DF1A(void)
 {
-    if (!gb_recovered_on()) { sub_0017DF1A_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359AB4u) { sub_0017DF1A_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi12Script::Execute");
     gbh_0017DF1A((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2509,7 +2509,7 @@ extern "C" void sub_0017E08E_gen(void);
 extern "C" void sub_0017E08E(void);
 void sub_0017E08E(void)
 {
-    if (!gb_recovered_on()) { sub_0017E08E_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359AECu) { sub_0017E08E_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi10Script::Execute");
     gbh_0017E08E((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2522,7 +2522,7 @@ extern "C" void sub_0017E20B_gen(void);
 extern "C" void sub_0017E20B(void);
 void sub_0017E20B(void)
 {
-    if (!gb_recovered_on()) { sub_0017E20B_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359B08u) { sub_0017E20B_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi9Script::Execute");
     gbh_0017E20B((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2535,7 +2535,7 @@ extern "C" void sub_0017E302_gen(void);
 extern "C" void sub_0017E302(void);
 void sub_0017E302(void)
 {
-    if (!gb_recovered_on()) { sub_0017E302_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359B24u) { sub_0017E302_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi8Script::Execute");
     gbh_0017E302((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2548,7 +2548,7 @@ extern "C" void sub_0017E423_gen(void);
 extern "C" void sub_0017E423(void);
 void sub_0017E423(void)
 {
-    if (!gb_recovered_on()) { sub_0017E423_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359BD0u) { sub_0017E423_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi6Script::Setup");
     gbh_0017E423((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2561,7 +2561,7 @@ extern "C" void sub_0017E449_gen(void);
 extern "C" void sub_0017E449(void);
 void sub_0017E449(void)
 {
-    if (!gb_recovered_on()) { sub_0017E449_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00359BD0u) { sub_0017E449_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi6Script::Execute");
     gbh_0017E449((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2574,7 +2574,7 @@ extern "C" void sub_0017E72D_gen(void);
 extern "C" void sub_0017E72D(void);
 void sub_0017E72D(void)
 {
-    if (!gb_recovered_on()) { sub_0017E72D_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_0017E72D_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::OnePlayerInit");
     gbh_0017E72D((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2587,7 +2587,7 @@ extern "C" void sub_0017EED6_gen(void);
 extern "C" void sub_0017EED6(void);
 void sub_0017EED6(void)
 {
-    if (!gb_recovered_on()) { sub_0017EED6_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_0017EED6_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::TwoPlayerInit");
     gbh_0017EED6((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2600,7 +2600,7 @@ extern "C" void sub_0017F67B_gen(void);
 extern "C" void sub_0017F67B(void);
 void sub_0017F67B(void)
 {
-    if (!gb_recovered_on()) { sub_0017F67B_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_0017F67B_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::ThreePlayerInit");
     gbh_0017F67B((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2613,7 +2613,7 @@ extern "C" void sub_0017FE20_gen(void);
 extern "C" void sub_0017FE20(void);
 void sub_0017FE20(void)
 {
-    if (!gb_recovered_on()) { sub_0017FE20_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_0017FE20_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::FourPlayerInit");
     gbh_0017FE20((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2626,7 +2626,7 @@ extern "C" void sub_001805C5_gen(void);
 extern "C" void sub_001805C5(void);
 void sub_001805C5(void)
 {
-    if (!gb_recovered_on()) { sub_001805C5_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_001805C5_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::SpawnEnemies");
     gbh_001805C5((uint32_t)(uintptr_t)gb_host(gb_this()), 0, gb_arg(0), gb_arg(1));
     gb_return(0, 8);
@@ -2639,7 +2639,7 @@ extern "C" void sub_0018082B_gen(void);
 extern "C" void sub_0018082B(void);
 void sub_0018082B(void)
 {
-    if (!gb_recovered_on()) { sub_0018082B_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_0018082B_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::DropBonus");
     gbh_0018082B((uint32_t)(uintptr_t)gb_host(gb_this()), 0, gb_arg(0), gb_arg(1));
     gb_return(0, 8);
@@ -2652,7 +2652,7 @@ extern "C" void sub_001808CE_gen(void);
 extern "C" void sub_001808CE(void);
 void sub_001808CE(void)
 {
-    if (!gb_recovered_on()) { sub_001808CE_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360220u) { sub_001808CE_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi5Script::Execute");
     gbh_001808CE((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2665,7 +2665,7 @@ extern "C" void sub_00180C98_gen(void);
 extern "C" void sub_00180C98(void);
 void sub_00180C98(void)
 {
-    if (!gb_recovered_on()) { sub_00180C98_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036023Cu) { sub_00180C98_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi4Script::Execute");
     gbh_00180C98((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2678,7 +2678,7 @@ extern "C" void sub_00180DAB_gen(void);
 extern "C" void sub_00180DAB(void);
 void sub_00180DAB(void)
 {
-    if (!gb_recovered_on()) { sub_00180DAB_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360258u) { sub_00180DAB_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi3Script::Execute");
     gbh_00180DAB((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2691,7 +2691,7 @@ extern "C" void sub_00180E90_gen(void);
 extern "C" void sub_00180E90(void);
 void sub_00180E90(void)
 {
-    if (!gb_recovered_on()) { sub_00180E90_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00360298u) { sub_00180E90_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi2Script::Execute");
     gbh_00180E90((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2704,7 +2704,7 @@ extern "C" void sub_00180F94_gen(void);
 extern "C" void sub_00180F94(void);
 void sub_00180F94(void)
 {
-    if (!gb_recovered_on()) { sub_00180F94_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003602B4u) { sub_00180F94_gen(); return; }
     static int seen; if (!seen++) gb_note("Multi1Script::Execute");
     gbh_00180F94((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2717,7 +2717,7 @@ extern "C" void sub_00181276_gen(void);
 extern "C" void sub_00181276(void);
 void sub_00181276(void)
 {
-    if (!gb_recovered_on()) { sub_00181276_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00361BCCu) { sub_00181276_gen(); return; }
     static int seen; if (!seen++) gb_note("Thule3Script::Setup");
     gbh_00181276((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2730,7 +2730,7 @@ extern "C" void sub_001815FE_gen(void);
 extern "C" void sub_001815FE(void);
 void sub_001815FE(void)
 {
-    if (!gb_recovered_on()) { sub_001815FE_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00361BCCu) { sub_001815FE_gen(); return; }
     static int seen; if (!seen++) gb_note("Thule3Script::Execute");
     gbh_001815FE((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2743,7 +2743,7 @@ extern "C" void sub_00187FA7_gen(void);
 extern "C" void sub_00187FA7(void);
 void sub_00187FA7(void)
 {
-    if (!gb_recovered_on()) { sub_00187FA7_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00364AF4u) { sub_00187FA7_gen(); return; }
     static int seen; if (!seen++) gb_note("Thule2Script::Setup");
     gbh_00187FA7((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2756,7 +2756,7 @@ extern "C" void sub_00188757_gen(void);
 extern "C" void sub_00188757(void);
 void sub_00188757(void)
 {
-    if (!gb_recovered_on()) { sub_00188757_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00364AF4u) { sub_00188757_gen(); return; }
     static int seen; if (!seen++) gb_note("Thule2Script::Execute");
     gbh_00188757((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2769,7 +2769,7 @@ extern "C" void sub_00196159_gen(void);
 extern "C" void sub_00196159(void);
 void sub_00196159(void)
 {
-    if (!gb_recovered_on()) { sub_00196159_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00366618u) { sub_00196159_gen(); return; }
     static int seen; if (!seen++) gb_note("Thule1Script::Setup");
     gbh_00196159((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2782,7 +2782,7 @@ extern "C" void sub_00196BD0_gen(void);
 extern "C" void sub_00196BD0(void);
 void sub_00196BD0(void)
 {
-    if (!gb_recovered_on()) { sub_00196BD0_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00366618u) { sub_00196BD0_gen(); return; }
     static int seen; if (!seen++) gb_note("Thule1Script::Execute");
     gbh_00196BD0((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2795,7 +2795,7 @@ extern "C" void sub_001A2F6B_gen(void);
 extern "C" void sub_001A2F6B(void);
 void sub_001A2F6B(void)
 {
-    if (!gb_recovered_on()) { sub_001A2F6B_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036859Cu) { sub_001A2F6B_gen(); return; }
     static int seen; if (!seen++) gb_note("Asteroid1Script::Setup");
     gbh_001A2F6B((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2808,7 +2808,7 @@ extern "C" void sub_001A3D2F_gen(void);
 extern "C" void sub_001A3D2F(void);
 void sub_001A3D2F(void)
 {
-    if (!gb_recovered_on()) { sub_001A3D2F_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036859Cu) { sub_001A3D2F_gen(); return; }
     static int seen; if (!seen++) gb_note("Asteroid1Script::Execute");
     gbh_001A3D2F((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2821,7 +2821,7 @@ extern "C" void sub_001AE777_gen(void);
 extern "C" void sub_001AE777(void);
 void sub_001AE777(void)
 {
-    if (!gb_recovered_on()) { sub_001AE777_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00369BBCu) { sub_001AE777_gen(); return; }
     static int seen; if (!seen++) gb_note("Kashyyyk3Script::Setup");
     gbh_001AE777((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2834,7 +2834,7 @@ extern "C" void sub_001AEE6D_gen(void);
 extern "C" void sub_001AEE6D(void);
 void sub_001AEE6D(void)
 {
-    if (!gb_recovered_on()) { sub_001AEE6D_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00369BBCu) { sub_001AEE6D_gen(); return; }
     static int seen; if (!seen++) gb_note("Kashyyyk3Script::Execute");
     gbh_001AEE6D((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2847,7 +2847,7 @@ extern "C" void sub_001B8EAB_gen(void);
 extern "C" void sub_001B8EAB(void);
 void sub_001B8EAB(void)
 {
-    if (!gb_recovered_on()) { sub_001B8EAB_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036AE70u) { sub_001B8EAB_gen(); return; }
     static int seen; if (!seen++) gb_note("Kashyyyk2Script::Setup");
     gbh_001B8EAB((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2860,7 +2860,7 @@ extern "C" void sub_001B94FE_gen(void);
 extern "C" void sub_001B94FE(void);
 void sub_001B94FE(void)
 {
-    if (!gb_recovered_on()) { sub_001B94FE_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036AE70u) { sub_001B94FE_gen(); return; }
     static int seen; if (!seen++) gb_note("Kashyyyk2Script::Execute");
     gbh_001B94FE((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2873,7 +2873,7 @@ extern "C" void sub_001C2C28_gen(void);
 extern "C" void sub_001C2C28(void);
 void sub_001C2C28(void)
 {
-    if (!gb_recovered_on()) { sub_001C2C28_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036C39Cu) { sub_001C2C28_gen(); return; }
     static int seen; if (!seen++) gb_note("Kashyyyk1Script::Setup");
     gbh_001C2C28((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2886,7 +2886,7 @@ extern "C" void sub_001C31BC_gen(void);
 extern "C" void sub_001C31BC(void);
 void sub_001C31BC(void)
 {
-    if (!gb_recovered_on()) { sub_001C31BC_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036C39Cu) { sub_001C31BC_gen(); return; }
     static int seen; if (!seen++) gb_note("Kashyyyk1Script::Execute");
     gbh_001C31BC((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2899,7 +2899,7 @@ extern "C" void sub_001C9247_gen(void);
 extern "C" void sub_001C9247(void);
 void sub_001C9247(void)
 {
-    if (!gb_recovered_on()) { sub_001C9247_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036EA58u) { sub_001C9247_gen(); return; }
     static int seen; if (!seen++) gb_note("Geonosis3Script::Setup");
     gbh_001C9247((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2912,7 +2912,7 @@ extern "C" void sub_001C9D35_gen(void);
 extern "C" void sub_001C9D35(void);
 void sub_001C9D35(void)
 {
-    if (!gb_recovered_on()) { sub_001C9D35_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0036EA58u) { sub_001C9D35_gen(); return; }
     static int seen; if (!seen++) gb_note("Geonosis3Script::Execute");
     gbh_001C9D35((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2925,7 +2925,7 @@ extern "C" void sub_001D8EF2_gen(void);
 extern "C" void sub_001D8EF2(void);
 void sub_001D8EF2(void)
 {
-    if (!gb_recovered_on()) { sub_001D8EF2_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0037053Cu) { sub_001D8EF2_gen(); return; }
     static int seen; if (!seen++) gb_note("Geonosis2Script::Setup");
     gbh_001D8EF2((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2938,7 +2938,7 @@ extern "C" void sub_001D9E10_gen(void);
 extern "C" void sub_001D9E10(void);
 void sub_001D9E10(void)
 {
-    if (!gb_recovered_on()) { sub_001D9E10_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x0037053Cu) { sub_001D9E10_gen(); return; }
     static int seen; if (!seen++) gb_note("Geonosis2Script::Execute");
     gbh_001D9E10((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2951,7 +2951,7 @@ extern "C" void sub_001E273D_gen(void);
 extern "C" void sub_001E273D(void);
 void sub_001E273D(void)
 {
-    if (!gb_recovered_on()) { sub_001E273D_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00371938u) { sub_001E273D_gen(); return; }
     static int seen; if (!seen++) gb_note("Geonosis1Script::Setup");
     gbh_001E273D((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2964,7 +2964,7 @@ extern "C" void sub_001E2D6E_gen(void);
 extern "C" void sub_001E2D6E(void);
 void sub_001E2D6E(void)
 {
-    if (!gb_recovered_on()) { sub_001E2D6E_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00371938u) { sub_001E2D6E_gen(); return; }
     static int seen; if (!seen++) gb_note("Geonosis1Script::Execute");
     gbh_001E2D6E((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2977,7 +2977,7 @@ extern "C" void sub_001EA96F_gen(void);
 extern "C" void sub_001EA96F(void);
 void sub_001EA96F(void)
 {
-    if (!gb_recovered_on()) { sub_001EA96F_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003732DCu) { sub_001EA96F_gen(); return; }
     static int seen; if (!seen++) gb_note("Ossus3Script::Setup");
     gbh_001EA96F((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -2990,7 +2990,7 @@ extern "C" void sub_001EB523_gen(void);
 extern "C" void sub_001EB523(void);
 void sub_001EB523(void)
 {
-    if (!gb_recovered_on()) { sub_001EB523_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003732DCu) { sub_001EB523_gen(); return; }
     static int seen; if (!seen++) gb_note("Ossus3Script::Execute");
     gbh_001EB523((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3003,7 +3003,7 @@ extern "C" void sub_001F5839_gen(void);
 extern "C" void sub_001F5839(void);
 void sub_001F5839(void)
 {
-    if (!gb_recovered_on()) { sub_001F5839_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003749DCu) { sub_001F5839_gen(); return; }
     static int seen; if (!seen++) gb_note("Ossus2Script::Setup");
     gbh_001F5839((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3016,7 +3016,7 @@ extern "C" void sub_001F5F8D_gen(void);
 extern "C" void sub_001F5F8D(void);
 void sub_001F5F8D(void)
 {
-    if (!gb_recovered_on()) { sub_001F5F8D_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003749DCu) { sub_001F5F8D_gen(); return; }
     static int seen; if (!seen++) gb_note("Ossus2Script::Execute");
     gbh_001F5F8D((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3029,7 +3029,7 @@ extern "C" void sub_001FDA41_gen(void);
 extern "C" void sub_001FDA41(void);
 void sub_001FDA41(void)
 {
-    if (!gb_recovered_on()) { sub_001FDA41_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00375EECu) { sub_001FDA41_gen(); return; }
     static int seen; if (!seen++) gb_note("Ossus1Script::Setup");
     gbh_001FDA41((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3042,7 +3042,7 @@ extern "C" void sub_001FDF34_gen(void);
 extern "C" void sub_001FDF34(void);
 void sub_001FDF34(void)
 {
-    if (!gb_recovered_on()) { sub_001FDF34_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00375EECu) { sub_001FDF34_gen(); return; }
     static int seen; if (!seen++) gb_note("Ossus1Script::Execute");
     gbh_001FDF34((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3055,7 +3055,7 @@ extern "C" void sub_002081EF_gen(void);
 extern "C" void sub_002081EF(void);
 void sub_002081EF(void)
 {
-    if (!gb_recovered_on()) { sub_002081EF_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003778B8u) { sub_002081EF_gen(); return; }
     static int seen; if (!seen++) gb_note("Raxus3Script::Setup");
     gbh_002081EF((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3068,7 +3068,7 @@ extern "C" void sub_00208E97_gen(void);
 extern "C" void sub_00208E97(void);
 void sub_00208E97(void)
 {
-    if (!gb_recovered_on()) { sub_00208E97_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003778B8u) { sub_00208E97_gen(); return; }
     static int seen; if (!seen++) gb_note("Raxus3Script::Execute");
     gbh_00208E97((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3081,7 +3081,7 @@ extern "C" void sub_00214299_gen(void);
 extern "C" void sub_00214299(void);
 void sub_00214299(void)
 {
-    if (!gb_recovered_on()) { sub_00214299_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003785FCu) { sub_00214299_gen(); return; }
     static int seen; if (!seen++) gb_note("Raxus2Script::Setup");
     gbh_00214299((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3094,7 +3094,7 @@ extern "C" void sub_00214645_gen(void);
 extern "C" void sub_00214645(void);
 void sub_00214645(void)
 {
-    if (!gb_recovered_on()) { sub_00214645_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x003785FCu) { sub_00214645_gen(); return; }
     static int seen; if (!seen++) gb_note("Raxus2Script::Execute");
     gbh_00214645((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3107,7 +3107,7 @@ extern "C" void sub_0021B578_gen(void);
 extern "C" void sub_0021B578(void);
 void sub_0021B578(void)
 {
-    if (!gb_recovered_on()) { sub_0021B578_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00378EB8u) { sub_0021B578_gen(); return; }
     static int seen; if (!seen++) gb_note("Raxus1Script::Setup");
     gbh_0021B578((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);
@@ -3120,7 +3120,7 @@ extern "C" void sub_0021B751_gen(void);
 extern "C" void sub_0021B751(void);
 void sub_0021B751(void)
 {
-    if (!gb_recovered_on()) { sub_0021B751_gen(); return; }
+    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x00378EB8u) { sub_0021B751_gen(); return; }
     static int seen; if (!seen++) gb_note("Raxus1Script::Execute");
     gbh_0021B751((uint32_t)(uintptr_t)gb_host(gb_this()), 0);
     gb_return(0, 0);

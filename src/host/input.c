@@ -280,6 +280,43 @@ static void watch_set(uint32_t guest)
     t = CreateThread(NULL, 0, watch_apply, (LPVOID)(uintptr_t)guest, 0, NULL);
     if (t) { WaitForSingleObject(t, 5000); CloseHandle(t); }
 }
+/* --headlessMuted status line for tools/smoke_maps.py, once a second from its
+ * own thread so it keeps coming when the frame loop stalls: frames presented,
+ * the mission state key (RUN 6D3CE530, PAUSE 37345010, SUCCESS 4CCBDEC7,
+ * FAILURE A90C322D), the mission-running flag and the pending level name. */
+unsigned hle_frame_count(void);
+static DWORD WINAPI smoke_status(LPVOID unused)
+{
+    unsigned last_frames = 0, still = 0;
+    (void)unused;
+    for (;;) {
+        uint32_t node = 0, key = 0, run = 0;
+        char level[33];
+        int k;
+        __try {
+            node = MEM32(0x005A71E8u);
+            if (node >= 0x00010000u && node < 0x08000000u) key = MEM32(node + 0x14);
+            run = MEM8(0x005A71CCu);
+            for (k = 0; k < 32 && MEM8(0x003FC288u + k) >= 0x20; k++) level[k] = (char)MEM8(0x003FC288u + k);
+            level[k] = 0;
+        } __except (EXCEPTION_EXECUTE_HANDLER) { level[0] = 0; }
+        fprintf(stderr, "[SMOKE] t=%lu frames=%u state=%08X run=%u level=%s\n",
+                (unsigned long)GetTickCount(), hle_frame_count(), key, run, level);
+        fflush(stderr);
+        /* No new frame for 20 s after the game was drawing: say where it is. */
+        if (hle_frame_count() != last_frames) { last_frames = hle_frame_count(); still = 0; }
+        else if (last_frames && ++still == 20) {
+            extern void hle_dump_main_stack(void);
+            hle_dump_main_stack();
+        }
+        Sleep(1000);
+    }
+}
+void hle_smoke_start(void)
+{
+    CloseHandle(CreateThread(NULL, 0, smoke_status, NULL, 0, NULL));
+}
+
 static unsigned g_tracef_addr[8], g_tracef_n[8];
 static FILE *g_tracef_file[8];
 void hle_live_poll(void)
@@ -697,7 +734,11 @@ void sub_003335A3(void)
     /* XINPUT_FEEDBACK: header {dwStatus, hEvent, Reserved[58]}, Rumble at +0x42 */
     v.l = MEM16(fb + 0x42);
     v.r = MEM16(fb + 0x44);
-    XInputSetState(h & 3, &v);
+    {
+        extern int cw_headless_muted(void);
+        if (!cw_headless_muted())           /* unattended runs leave the pad still */
+            XInputSetState(h & 3, &v);
+    }
     MEM32(fb) = 0;                          /* completed */
     g_eax = 0;
     g_esp += 12;

@@ -189,6 +189,8 @@ static void load_settings(void)
         s_k = ((float)s_bbh * 4.0f) / ((float)s_bbw * 3.0f);
 }
 
+int cw_headless_muted(void);   /* src/host/main.c */
+
 static void pump_messages(void)
 {
     MSG msg;
@@ -223,6 +225,7 @@ static int ensure_device(void)
         return 0;
 
     load_settings();
+    if (cw_headless_muted()) s_fullscreen = 0;
     {
         WNDCLASSA wc;
         memset(&wc, 0, sizeof(wc));
@@ -255,6 +258,7 @@ static int ensure_device(void)
             y = wa.top + ((wa.bottom - wa.top) - (r.bottom - r.top)) / 2;
         }
     }
+    if (cw_headless_muted()) style &= ~WS_VISIBLE;      /* never shown */
     s_hwnd = CreateWindowExA(0, "CloneWarsDX8", "Star Wars: The Clone Wars",
                              style, x, y, r.right - r.left, r.bottom - r.top, NULL, NULL,
                              GetModuleHandleA(NULL), NULL);
@@ -2645,4 +2649,23 @@ void sub_002D7350(void)
     else
         MEM32(out) = 3u;                       /* D3DFIELD_PROGRESSIVE */
     g_esp += 8;                                /* ret 4 */
+}
+
+/* 0x002D64C0 D3DDevice_GetVisibilityTestResult(Index, pResult, pTimeStamp).
+ *
+ * The title's version reads the report slot the NV2A writes when it finishes
+ * a visibility test (the pixel count of the test geometry) and returns
+ * D3DERR_TESTINCOMPLETE until then. Here nothing executes the pushbuffer, so
+ * the slot is never written; the light-glare code (0x0009E220) retries an
+ * incomplete test in a tight loop, and on maps with tested lights -- online
+ * cz2, dm1-3, cq2 -- the game stopped in its first gameplay frame. DX8 on
+ * the PC has no occlusion queries, so every test reports as fully visible: a
+ * glare can show through a wall that would have hidden it. */
+void sub_002D64C0(void)
+{
+    uint32_t result = ARG(1), stamp = ARG(2);
+    if (result) MEM32(result) = 0x100u;        /* pixels: well over the title's "partly hidden" 100 */
+    if (stamp) { MEM32(stamp) = 0; MEM32(stamp + 4) = 0; }
+    g_eax = 0;                                 /* D3D_OK */
+    g_esp += 16;                               /* ret 0xC */
 }

@@ -370,6 +370,15 @@ def main():
         lines.append("")
 
     # hooks
+    # The Xbox build shares some script methods between classes: the online
+    # Academy script (ac1, no recovered source) calls Multi5Script::GiveAmmo
+    # at the same address. The recovered body assumes its own class's layout,
+    # so a script method hook runs it only when the object is that class
+    # (vtable pointer) and otherwise falls through to the translation.
+    vtables = {}
+    vt_path = os.path.join(GAME, "script_vtables.json")
+    if os.path.exists(vt_path):
+        vtables = {c: v["vt"] for c, v in json.load(open(vt_path)).items()}
     for k in sorted(def_va, key=lambda k: def_va[k]):
         u = und.get(k, "")
         sn = short_name(u)
@@ -405,7 +414,11 @@ def main():
         lines.append('extern "C" void sub_%08X(void);' % va)
         lines.append("void sub_%08X(void)" % va)
         lines.append("{")
-        lines.append("    if (!gb_recovered_on()) { sub_%08X_gen(); return; }" % va)
+        if conv == "__thiscall" and cls in vtables:
+            lines.append("    if (!gb_recovered_on() || *(const uint32_t *)gb_host(gb_this()) != 0x%08Xu)"
+                         " { sub_%08X_gen(); return; }" % (vtables[cls], va))
+        else:
+            lines.append("    if (!gb_recovered_on()) { sub_%08X_gen(); return; }" % va)
         lines.append('    static int seen; if (!seen++) gb_note("%s");' % sn)
         if rc == "v":
             lines.append("    %s(%s);" % (tag, args))

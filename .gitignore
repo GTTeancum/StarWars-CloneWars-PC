@@ -63,3 +63,4 @@ build32abi/
 captures/
 logs/
 tools/*.before*.json
+__pycache__/

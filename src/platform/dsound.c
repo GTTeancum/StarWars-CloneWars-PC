@@ -40,6 +40,8 @@ extern int xbox_hle_set_event(uint32_t guest_handle);
 extern void (*volatile xbox_hle_periodic_hook)(void);
 extern unsigned long __stdcall GetTickCount(void);
 
+int cw_headless_muted(void);   /* src/host/main.c */
+
 /* Host output (dsound_mix.inc, included at the end). */
 static void mix_note_format(uint32_t obj, uint32_t wfx);
 static void mix_track_buffer(uint32_t b, int add);

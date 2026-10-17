@@ -74,6 +74,7 @@ set(GAME_SOURCES
     src/platform/dsound.c
     src/platform/xmv.c
     src/overrides/recomp_manual.c
+    src/overrides/mp_cmdline.c
 )
 # Recovered source (Shaymin's GameCube decompilation) runs through the bridge in
 # src/game/glue; the generated glue (glue_gen.cpp) comes from tools/gc_bind.py.

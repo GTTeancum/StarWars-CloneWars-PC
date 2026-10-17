@@ -372,6 +372,8 @@ static DWORD WINAPI mix_thread(LPVOID unused)
             }
         }
         clock += MIX_BLOCK * 1000.0 / MIX_RATE;
+        if (cw_headless_muted())    /* mixed as usual, played as silence */
+            memset(h->lpData, 0, h->dwBufferLength);
         waveOutWrite(wo, h, sizeof *h);
         next = (next + 1) % MIX_NBUF;
     }
