@@ -8,9 +8,25 @@ Windows audio mixer, and controllers through XInput.
 
 ![Gameplay at 1920x1080, widescreen](docs/screenshots/gameplay-1080p-widescreen.jpg)
 
-**This repository contains no game code or data.** You need your own copy of
-the original Xbox disc. The build regenerates the translated code from your
-`default.xbe`; nothing derived from the game is distributed here.
+**No game data is included.** You need a disc image of your own copy of the
+original Xbox game (USA release). The source code in this repository contains
+nothing from the game; the build regenerates the translated code from your
+`default.xbe`. The ready-to-run `.exe` on the Releases page is built that way:
+it contains the game's program code, translated, but none of its graphics,
+sound, levels or movies, which come from your disc image.
+
+## Playing
+
+1. Download `CloneWars32.exe` from the
+   [Releases](https://github.com/GTTeancum/StarWars-CloneWars-PC/releases) page.
+2. Put it in an empty folder together with your disc image (`.iso` or
+   `.xiso`, the USA release).
+3. Double-click `CloneWars32.exe`.
+
+The first start unpacks the disc image into that folder (about 1.5 GB) and
+then starts the game; after that it starts straight away, and the image can
+be deleted. Nothing needs to be installed: Windows 10 or 11 is enough.
+(Windows "N" editions need Microsoft's Media Feature Pack, for the movies.)
 
 ## Features
 
@@ -53,11 +69,15 @@ Saves are stored in `%LOCALAPPDATA%\CloneWarsRecomp`.
 
 ## Status
 
-Single player is playable. Known gaps:
+Single player is playable, and all 40 maps (campaign, split-screen and the
+system-link maps) load and run in an automated test (`tools/smoke_maps.py`).
+Known gaps:
 
 - Pre-baked terrain sun shadows are not drawn yet.
 - A few pixel shaders fall back to a simplified version.
-- Multiplayer / split-screen is not supported.
+- Split-screen runs but has had little play-testing; the right edge of each
+  player's HUD is slightly cut off.
+- Online and system-link play are not supported.
 
 ## Building
 
