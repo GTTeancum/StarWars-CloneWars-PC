@@ -17,10 +17,17 @@ sound, levels or movies, which come from your disc image.
 
 ## Playing
 
+**Required disc:** *Star Wars: The Clone Wars* for the original Xbox, USA
+(NTSC-U) retail release: the Redump dump "Star Wars - The Clone Wars (USA)"
+(its `default.xbe` is dated 2003-04-04). Full disc dumps and trimmed `.xiso`
+images both work. European (PAL) and other versions are not supported; the
+game checks your image on first start and tells you if it is a different
+version.
+
 1. Download `CloneWars32.exe` from the
    [Releases](https://github.com/GTTeancum/StarWars-CloneWars-PC/releases) page.
 2. Put it in an empty folder together with your disc image (`.iso` or
-   `.xiso`, the USA release).
+   `.xiso`).
 3. Double-click `CloneWars32.exe`.
 
 The first start unpacks the disc image into that folder (about 1.5 GB) and
