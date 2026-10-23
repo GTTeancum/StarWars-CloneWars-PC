@@ -18,6 +18,10 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "Build for Win32: cmake -S . -B build32 -A Win32")
 endif()
 
+# Static C/C++ runtime (/MT), for the toolkit libraries too: the released .exe
+# runs on a stock Windows 10/11 without the Visual C++ Redistributable.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
