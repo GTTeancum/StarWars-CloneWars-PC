@@ -67,13 +67,15 @@ file(GLOB RECOMP_GEN_SOURCES CONFIGURE_DEPENDS "src/recomp/gen/*.c")
 
 # Core game sources
 # Layout (mirrors the GameCube decompilation's port/ tree):
-#   src/host/       entry point, directories and saves, input and live control
+#   src/host/       entry point, directories and saves, first-run disc unpacking,
+#                   input and live control
 #   src/platform/   the title's XDK libraries replaced: Direct3D 8, DirectSound, XMV
 #   src/overrides/  hand-lifted replacements for single recompiled functions
 #   src/game/       recovered original game source, one file per original TU
 set(GAME_SOURCES
     src/host/main.c
     src/host/input.c
+    src/host/xiso.c
     src/platform/d3d8.c
     src/platform/dsound.c
     src/platform/xmv.c
@@ -126,6 +128,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     dxguid
     xinput
     winmm
+    comdlg32
     # Lets the fault handler resolve the host RIP back to the generated
     # function's symbol, i.e. to the guest function that faulted.
     dbghelp

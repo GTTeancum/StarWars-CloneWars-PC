@@ -495,6 +495,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     resolve_dirs(game_dir, xbe_path, save_dir, MAX_PATH);
     printf("Game directory: %s\n", game_dir);
 
+    /* First run: unpack the player's disc image beside the .exe (xiso.c). */
+    {
+        extern int cw_xiso_prepare(const char *game_dir);
+        if (!cw_xiso_prepare(game_dir))
+            return 1;
+    }
+
     if (!load_xbe(xbe_path, &xbe_data, &xbe_size)) {
         if (!cw_headless_muted())
         MessageBoxA(NULL, "Failed to load default.xbe.\n"
@@ -722,7 +729,13 @@ static void configure_host_log(void)
     if (!path || !*path)
         return;
 
-    if (!freopen(path, "w", stdout))
+    /* Truncate once, then both streams append: with stdout opened "w" each
+     * stream kept its own write position and stdout overwrote stderr. */
+    {
+        FILE *f = fopen(path, "w");
+        if (f) fclose(f);
+    }
+    if (!freopen(path, "a", stdout))
         return;
     (void)freopen(path, "a", stderr);
 }
