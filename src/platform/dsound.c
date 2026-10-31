@@ -467,6 +467,14 @@ static void hle_dsound_periodic(void)
     s_unlock_no_wait = 0;
 }
 
+/* The timer thread's one hook, shared with the network chip (src/host/net.c). */
+void cw_net_periodic(void);
+static void hle_periodic(void)
+{
+    hle_dsound_periodic();
+    cw_net_periodic();
+}
+
 /* ---- XMediaObject methods (stream vtable) ----------------------------- */
 
 static void s_addref(void)
@@ -608,7 +616,7 @@ static uint32_t s_device;
 void sub_002F6D1B(void)
 {
     hle_lock_init();
-    xbox_hle_periodic_hook = hle_dsound_periodic;
+    xbox_hle_periodic_hook = hle_periodic;
     mix_start();
     uint32_t pp = ARG(1);
     hle_vtables_init();

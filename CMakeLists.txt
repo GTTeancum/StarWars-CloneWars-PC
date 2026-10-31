@@ -75,6 +75,8 @@ file(GLOB RECOMP_GEN_SOURCES CONFIGURE_DEPENDS "src/recomp/gen/*.c")
 set(GAME_SOURCES
     src/host/main.c
     src/host/input.c
+    src/host/net.c
+    src/host/dht.c
     src/host/xiso.c
     src/platform/d3d8.c
     src/platform/dsound.c
@@ -128,6 +130,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     dxguid
     xinput
     winmm
+    ws2_32
+    bcrypt
     comdlg32
     # Lets the fault handler resolve the host RIP back to the generated
     # function's symbol, i.e. to the guest function that faulted.
