@@ -23,7 +23,7 @@
  * pad; each press is held for 250 ms, or for D seconds with "sec:BUTTON/D".
  * Stick deflections LUP LDOWN LLEFT LRIGHT RUP RDOWN RLEFT RRIGHT hold the
  * stick fully over. BUTTON is otherwise one of START BACK UP DOWN
- * LEFT RIGHT A B X Y BLACK WHITE LT RT.
+ * LEFT RIGHT A B X Y BLACK WHITE LT RT, or LS / RS (stick clicks).
  */
 
 #include <stdio.h>
@@ -137,6 +137,7 @@ static int button_code(const char *name, int *bit, int *analog)
     static const struct { const char *n; int bit; int analog; } names[] = {
         { "UP", 0x01, -1 }, { "DOWN", 0x02, -1 }, { "LEFT", 0x04, -1 },
         { "RIGHT", 0x08, -1 }, { "START", 0x10, -1 }, { "BACK", 0x20, -1 },
+        { "LS", 0x40, -1 }, { "RS", 0x80, -1 },              /* stick clicks */
         { "A", 0, 0 }, { "B", 0, 1 }, { "X", 0, 2 }, { "Y", 0, 3 },
         { "BLACK", 0, 4 }, { "WHITE", 0, 5 }, { "LT", 0, 6 }, { "RT", 0, 7 },
         /* sticks: analog 8 + axis*2 + (0 = negative, 1 = positive) */
@@ -180,6 +181,7 @@ static void load_script(void)
  * CW_INPUT_SCRIPT), "SHOT" saves the next frame (CW_SHOT_FILE). */
 extern volatile int hle_shot_request;
 static void live_input(void);
+static void pads_report(void);
 
 /* "WATCH <hex guest address>": report which recompiled functions write that
  * dword, using debug register DR0 on every thread of the process. A vectored
@@ -365,6 +367,7 @@ static void live_input(void)
         int port = 0;
         const char *l = line;
         if (!strncmp(line, "SHOT", 4)) { hle_shot_request = 1; continue; }
+        if (!strncmp(line, "PADS", 4)) { pads_report(); continue; }
         if (!strncmp(line, "VSFOG ", 6)) { extern void hle_vs_tablefog(int); hle_vs_tablefog(atoi(line + 6)); continue; }
         if (!strncmp(line, "DUMPVC ", 7)) { extern void hle_dump_vc(uint32_t); hle_dump_vc((uint32_t)strtoul(line + 7, NULL, 16)); continue; }
         if (!strncmp(line, "SHOWVA ", 7)) { extern void hle_show_va(uint32_t); hle_show_va((uint32_t)strtoul(line + 7, NULL, 16)); continue; }
@@ -462,6 +465,14 @@ static void live_input(void)
             continue;
         }
         if (l[0] >= '1' && l[0] <= '4' && l[1] == ':') { port = l[0] - '1'; l += 2; }
+        if (g_nscript == 4096) {
+            /* Full: drop presses that are over, or long unattended runs
+             * (four bot-driven pads) stop taking input after a few minutes. */
+            int i, n = 0;
+            for (i = 0; i < g_nscript; i++)
+                if (now - g_t0 < g_script[i].ms + g_script[i].dur) g_script[n++] = g_script[i];
+            g_nscript = n;
+        }
         if (sscanf(l, "%15[A-Za-z]/%lf", name, &dur) >= 1 && button_code(name, &bit, &analog) &&
             g_nscript < 4096) {
             g_script[g_nscript].port = port;
@@ -693,6 +704,21 @@ static void rec_pad0(pad_t *p)
     s_poll++;
 }
 
+/* "PADS" (live control): how often each port was read since the last PADS,
+ * and from which return addresses -- which code is polling which pad. */
+static unsigned g_polls[4], g_poll_ret[4][8], g_poll_nret[4];
+static void pads_report(void)
+{
+    unsigned p, k;
+    for (p = 0; p < 4; p++) {
+        fprintf(stderr, "[PADS] port %u: %u reads, from", p, g_polls[p]);
+        for (k = 0; k < g_poll_nret[p]; k++) fprintf(stderr, " %08X", g_poll_ret[p][k]);
+        fputc(10, stderr);
+        g_polls[p] = 0; g_poll_nret[p] = 0;
+    }
+    fflush(stderr);
+}
+
 /* XInputGetState */
 void sub_00333537(void)
 {
@@ -703,6 +729,12 @@ void sub_00333537(void)
     pad_t p;
     if (!is_fake(h)) { sub_00333537_gen(); return; }
     port = h & 3;
+    g_polls[port]++;
+    {
+        uint32_t ret = MEM32(g_esp), k;
+        for (k = 0; k < g_poll_nret[port] && g_poll_ret[port][k] != ret; k++) ;
+        if (k == g_poll_nret[port] && k < 8) g_poll_ret[port][g_poll_nret[port]++] = ret;
+    }
     memset(&p, 0, sizeof p);
     host_pad(port, &p);
     if (port == 0) keyboard_pad(&p);

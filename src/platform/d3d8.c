@@ -468,6 +468,44 @@ static int fmt_is_linear(uint32_t fmt)
     }
 }
 
+/* Screen grabs. D3DDevice_CopyRects from the render target into a texture
+ * (m_copy_rects): the boost zoom blur copies the finished 3D frame into a
+ * 640x480 linear texture and draws it back over the scene, enlarged and
+ * translucent. On the Xbox that copy is a GPU blit into guest memory; here
+ * the frame exists only on the host, so the guest texture stayed black and
+ * the blur just darkened the screen. The scene target is copied into a host
+ * texture instead. A pre-transformed draw with a grab's destination on stage
+ * 0 (the blur quad) samples it, its coordinates remapped (grab_fix_uv) from
+ * the guest texture's texels to the part of the target the copied rectangle
+ * came from: u' = au * u + bu, v' = av * v + bv. Other draws reading the
+ * texture keep the guest copy: their coordinates cannot be remapped. */
+typedef struct { uint32_t data; float au, bu, av, bv; } grab_t;
+#define GRABS 4
+static grab_t s_grab[GRABS];
+static int s_ngrab;
+static IDirect3DTexture8 *s_grab_tex;
+static IDirect3DSurface8 *s_grab_surf;
+
+static const grab_t *grab_find(uint32_t res)
+{
+    int i;
+    uint32_t data;
+    if (!res || !s_ngrab) return NULL;
+    data = MEM32(res + 4);
+    for (i = 0; i < s_ngrab; i++)
+        if (s_grab[i].data == data) return &s_grab[i];
+    return NULL;
+}
+
+/* The grab the current draw samples on stage 0, if it is a fixed-function
+ * pre-transformed draw (whose coordinates grab_fix_uv can remap). */
+static const grab_t *grab_for_draw(void)
+{
+    if (!s_grab_tex || (s_vshader & 1) || (s_vshader & D3DFVF_POSITION_MASK) != D3DFVF_XYZRHW)
+        return NULL;
+    return grab_find(s_tex[0]);
+}
+
 /* Host texture for a guest D3DPixelContainer: Common, Data, Lock, Format, Size.
  * Top mip level only for now. */
 static IDirect3DTexture8 *get_texture(uint32_t res)
@@ -874,7 +912,7 @@ static void apply_state(void)
     (void)f;
 
     for (st = 0; st < 4; st++) {
-        IDirect3DTexture8 *t = get_texture(s_tex[st]);
+        IDirect3DTexture8 *t = st == 0 && grab_for_draw() ? s_grab_tex : get_texture(s_tex[st]);
         DWORD cop = x_top(XTSS(st, XTSS_COLOROP)), aop = x_top(XTSS(st, XTSS_ALPHAOP));
         IDirect3DDevice8_SetTexture(d, st, (IDirect3DBaseTexture8 *)t);
         if (use_ps) {
@@ -955,6 +993,8 @@ static void dump_states(void)
 static void cap_draw(const char *kind, uint32_t xprim, uint32_t nverts, uint32_t pidx);
 static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t stride);
 static void rhw_inset_quads(const uint8_t *v, uint32_t nverts, uint32_t stride);
+static const uint8_t *grab_fix_uv(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t stride);
+static int split_screen(void);
 static int hud_anchor_ff(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t stride);
 static void proj_apply(void);
 
@@ -1045,6 +1085,7 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
         if ((s_vshader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW && nverts) {
             verts = rhw_map(verts, 0, nverts - 1, stride);
             if (xprim == 8) rhw_inset_quads(verts, nverts, stride);
+            verts = grab_fix_uv(verts, 0, nverts - 1, stride);
         } else if (nverts) {
             hud_moved = hud_anchor_ff(verts, 0, nverts - 1, stride);
         }
@@ -1073,9 +1114,10 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
         if (lo > hi)
             return;
         verts = (const uint8_t *)gptr(base + s_ib_base * stride);
-        if ((s_vshader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW)
+        if ((s_vshader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) {
             verts = rhw_map(verts, lo, hi, stride);
-        else
+            verts = grab_fix_uv(verts, lo, hi, stride);
+        } else
             hud_moved = hud_anchor_ff(verts, lo, hi, stride);
         if (xprim == 8) {
             uint32_t q, nq = n / 4;
@@ -1213,7 +1255,7 @@ static void vp_apply(void)
     if (!s_gvp_have) { g.X = 0; g.Y = 0; g.Width = 640; g.Height = 480; g.MinZ = 0.0f; g.MaxZ = 1.0f; }
     v.MinZ = g.MinZ; v.MaxZ = g.MaxZ;
     s_gvp_full = g.X == 0 && g.Y == 0 && g.Width >= 640 && g.Height >= 480;
-    if (g.X == 0 && g.Y == 0 && g.Width >= 640 && g.Height >= 480 && s_k < 1.0f) {
+    if (g.X == 0 && g.Y == 0 && g.Width >= 640 && g.Height >= 480 && s_k < 1.0f && !split_screen()) {
         v.X = 0; v.Y = 0; v.Width = (DWORD)s_bbw; v.Height = (DWORD)s_bbh;
         /* The game widens its own camera (sub_00227960 above); CW_WIDE_RENDER=1
          * does it here in clip space instead (no culling fix). */
@@ -1249,6 +1291,16 @@ static int tex_is_picture(uint32_t res)
     if (!res || !(t = get_texture(res)) || FAILED(IDirect3DTexture8_GetLevelDesc(t, 0, &d)))
         return 0;
     return d.Width > 64 || d.Height > 64;
+}
+
+/* Split screen: two or more local players in a multiplayer game (the
+ * title's multiplayer flag and MPGetNumPlayers' count). Each player's view
+ * and HUD lie in a part of the 4:3 screen, so nothing is widened or moved
+ * out to the edges of a wider target: the HUD anchoring below would push a
+ * corner piece out of its player's view (radar, health gauge cut off). */
+static int split_screen(void)
+{
+    return MEM8(0x005EC730u) && MEM32(0x005EC72Cu) >= 2;
 }
 
 /* Screen-space (pre-transformed) vertices: 640x480 -> render target. */
@@ -1308,7 +1360,7 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
          * widened view. CW_NO_HUD_ANCHOR=1 disables. */
         /* Pieces reaching past the 640-wide screen are placed on 3D points
          * the widened view shows beside it (target brackets): never HUD. */
-        if (ox > 0.0f && s_k < 1.0f && minx >= 0.0f && maxx <= 640.0f &&
+        if (ox > 0.0f && s_k < 1.0f && minx >= 0.0f && maxx <= 640.0f && !split_screen() &&
             MEM32(0x005ED8B0u) == 0 && !getenv("CW_NO_HUD_ANCHOR")) {
             /* Judged by the piece's centre (the radar rotates; its bounding
              * box does not stay put). Large or tall pieces with their centre
@@ -1413,6 +1465,103 @@ static void rhw_inset_quads(const uint8_t *vconst, uint32_t nverts, uint32_t str
     }
 }
 
+/* A pre-transformed draw sampling a screen grab on stage 0: its texture
+ * coordinates, in the guest texture's terms, are mapped onto the host copy.
+ * Returns v, or a private copy with the coordinates rewritten. */
+static const uint8_t *grab_fix_uv(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t stride)
+{
+    static uint8_t *buf;
+    static size_t cap;
+    const grab_t *g = grab_for_draw();
+    size_t need = (size_t)(hi + 1) * stride;
+    uint32_t off = 16, i;
+    if (!g || ((s_vshader >> 8) & 0xF) == 0 || XTSS(0, XTSS_TEXCOORDINDEX) != 0) return v;
+    if (s_vshader & D3DFVF_DIFFUSE) off += 4;
+    if (s_vshader & D3DFVF_SPECULAR) off += 4;
+    if (off + 8 > stride) return v;
+    if (need > cap) {
+        free(buf);
+        cap = need + need / 2;
+        buf = (uint8_t *)malloc(cap);
+        if (!buf) { cap = 0; return v; }
+    }
+    memcpy(buf + (size_t)lo * stride, v + (size_t)lo * stride, (size_t)(hi - lo + 1) * stride);
+    for (i = lo; i <= hi; i++) {
+        float *uv = (float *)(buf + (size_t)i * stride + off);
+        uv[0] = g->au * uv[0] + g->bu;
+        uv[1] = g->av * uv[1] + g->bv;
+    }
+    return buf;
+}
+
+/* D3DDevice_CopyRects(pSourceSurface, pSourceRects, cRects, pDestSurface,
+ * pDestPoints) from the frame being drawn: copy the host scene target and
+ * note where the guest's rectangle lies in it (see grab_t). The first
+ * rectangle only; the title copies whole frames. */
+static void m_copy_rects(const uint32_t *a)
+{
+    uint32_t src = a[0], rects = a[1], n = a[2], dst = a[3], pts = a[4];
+    float l = 0.0f, t = 0.0f, px = 0.0f, py = 0.0f, sx, sy, ox, oy, dw = 1.0f, dh = 1.0f;
+    uint32_t dfmt, dsize;
+    IDirect3DSurface8 *from = s_scene_surf, *bb = NULL;
+    D3DSURFACE_DESC d;
+    grab_t *g;
+    int i;
+    HRESULT hr;
+
+    if (!src || !dst || !s_cur_rt || MEM32(src + 4) != MEM32(s_cur_rt + 4) || !ensure_device())
+        return;
+    if (!from) {
+        if (FAILED(IDirect3DDevice8_GetBackBuffer(s_dev, 0, D3DBACKBUFFER_TYPE_MONO, &bb))) return;
+        from = bb;
+    }
+    if (!s_grab_tex && SUCCEEDED(IDirect3DSurface8_GetDesc(from, &d))) {
+        if (FAILED(IDirect3DDevice8_CreateTexture(s_dev, d.Width, d.Height, 1, D3DUSAGE_RENDERTARGET, d.Format,
+                                                  D3DPOOL_DEFAULT, &s_grab_tex)) ||
+            FAILED(IDirect3DTexture8_GetSurfaceLevel(s_grab_tex, 0, &s_grab_surf))) {
+            d3d_log("screen grab texture failed");
+            if (s_grab_tex) IDirect3DTexture8_Release(s_grab_tex);
+            s_grab_tex = NULL;
+        }
+    }
+    hr = s_grab_surf ? IDirect3DDevice8_CopyRects(s_dev, from, NULL, 0, s_grab_surf, NULL) : E_FAIL;
+    if (bb) IDirect3DSurface8_Release(bb);
+    if (FAILED(hr)) {
+        static int warned;
+        if (!warned++) d3d_log("CopyRects to the screen grab failed hr=0x%08lX", (unsigned long)hr);
+        return;
+    }
+
+    if (s_cap)
+        fprintf(s_cap, "     copy rects %u to %08X (data %08X fmt %X size %08X)\n", n, dst, MEM32(dst + 4),
+                (MEM32(dst + 0xC) >> 8) & 0xFF, MEM32(dst + 0x10));
+    if (n && rects) { l = (float)(int32_t)MEM32(rects); t = (float)(int32_t)MEM32(rects + 4); }
+    if (n && pts) { px = (float)(int32_t)MEM32(pts); py = (float)(int32_t)MEM32(pts + 4); }
+    /* Guest screen -> target pixels, as vp_apply placed the 3D view. */
+    if (s_gvp_full && s_k < 1.0f && !split_screen()) {
+        sx = (float)s_bbw / 640.0f; sy = (float)s_bbh / 480.0f; ox = oy = 0.0f;
+    } else {
+        sx = sy = s_hs; ox = s_hx0; oy = s_hy0;
+    }
+    /* Linear textures are addressed in texels; swizzled ones 0..1. */
+    dfmt = (MEM32(dst + 0xC) >> 8) & 0xFF;
+    dsize = MEM32(dst + 0x10);
+    if (!fmt_is_linear(dfmt)) {
+        if (dsize) { dw = (float)((dsize & 0xFFF) + 1); dh = (float)(((dsize >> 12) & 0xFFF) + 1); }
+        else { dw = (float)(1u << ((MEM32(dst + 0xC) >> 20) & 0xF)); dh = (float)(1u << ((MEM32(dst + 0xC) >> 24) & 0xF)); }
+    }
+    for (i = 0; i < s_ngrab && s_grab[i].data != MEM32(dst + 4); i++) ;
+    if (i == s_ngrab) {
+        if (s_ngrab == GRABS) i = 0; else s_ngrab++;
+    }
+    g = &s_grab[i];
+    g->data = MEM32(dst + 4);
+    g->au = dw * sx / (float)s_bbw;
+    g->bu = (ox + (l - px) * sx) / (float)s_bbw;
+    g->av = dh * sy / (float)s_bbh;
+    g->bv = (oy + (t - py) * sy) / (float)s_bbh;
+}
+
 /* HUD anchoring in widescreen. The HUD is drawn in 3D through an
  * orthographic camera that the game widens like any other full-screen camera
  * (sub_00227960), so it keeps the 4:3 layout: the 640-wide screen spans clip
@@ -1452,7 +1601,7 @@ static int hud_anchor_ff(const uint8_t *v, uint32_t lo, uint32_t hi, uint32_t st
     float x0 = 1e9f, x1 = -1e9f, sh;
     uint32_t i;
     DWORD pos = s_vshader & D3DFVF_POSITION_MASK;
-    if (s_k >= 1.0f || !s_proj_have || !s_gvp_full) return 0;
+    if (s_k >= 1.0f || !s_proj_have || !s_gvp_full || split_screen()) return 0;
     if (s_proj._34 != 0.0f || s_proj._44 != 1.0f) return 0;          /* perspective */
     if (pos == D3DFVF_XYZRHW || pos == 0 || hi < lo || hi - lo > 4096) return 0;
     mat_mul(&m, &s_world, &s_view);
@@ -2276,7 +2425,7 @@ static void present_frame(int from_swap)
     if (bb) {
         IDirect3DDevice8_SetRenderTarget(s_dev, s_scene_surf, s_scene_ds);
         IDirect3DSurface8_Release(bb);
-        if (s_k >= 1.0f && (s_bbw != 640 || s_bbh != 480)) {
+        if ((s_k >= 1.0f || split_screen()) && (s_bbw != 640 || s_bbh != 480)) {
             /* 4:3 picture on a wider target: keep the side bars black. */
             D3DVIEWPORT8 full = { 0, 0, (DWORD)s_bbw, (DWORD)s_bbh, 0.0f, 1.0f };
             IDirect3DDevice8_SetViewport(s_dev, &full);
@@ -2449,6 +2598,7 @@ static void m_update_overlay(const uint32_t *a)
 #define MIRROR_SETLIGHT     m_set_light(a[0], a[1])
 #define MIRROR_LIGHTENABLE  m_light_enable(a[0], a[1])
 #define MIRROR_SETMATERIAL  m_set_material(a[0])
+#define MIRROR_COPYRECTS    m_copy_rects(a)
 
 #else  /* no d3d8: pass-through wrappers */
 
@@ -2468,6 +2618,7 @@ static void m_update_overlay(const uint32_t *a)
 #define MIRROR_SETLIGHT     ((void)0)
 #define MIRROR_LIGHTENABLE  ((void)0)
 #define MIRROR_SETMATERIAL  ((void)0)
+#define MIRROR_COPYRECTS    ((void)0)
 
 volatile int hle_shot_request;   /* live-control SHOT: no host renderer to capture */
 volatile int hle_capture_request;
@@ -2606,6 +2757,11 @@ void sub_002D45B0(void)
     (void)rt;
 #endif
 }
+
+/* 0x002D6860 D3DDevice_CopyRects(pSourceSurface, pSourceRectsArray, cRects,
+ * pDestinationSurface, pDestPointsArray): screen grabs, see m_copy_rects. */
+void sub_002D6860_gen(void);
+void sub_002D6860(void) { D3D_WRAP_BODY(sub_002D6860_gen, 5, MIRROR_COPYRECTS) }
 
 /* 0x002D6D10 D3DDevice_SetLight(Index, pLight) */
 void sub_002D6D10_gen(void);

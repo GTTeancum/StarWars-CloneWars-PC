@@ -1067,3 +1067,38 @@ void recomp_icall_not_code_log(uint32_t va)
     fflush(stderr);
 }
 
+
+/* 0x0002CE90: a segment against the terrain height grid (the line-of-sight
+ * test behind sub_0002E060 / sub_0002E150), cdecl-style with ret 16:
+ * (start*, delta*, ...). It walks the grid one cell at a time; the cell count
+ * is the integer difference of the scaled end points. A NaN end point makes
+ * that INT_MIN minus the start cell: with a negative start cell the count is
+ * negative and the walk ends at once, with a positive one it is about two
+ * billion cells and the game stops (a 4-player Conquest match on Geonosis
+ * froze 40 s in, a vehicle or target position having gone NaN). A segment
+ * with a non-finite coordinate returns "nothing hit", as the short case
+ * does. */
+void sub_0002CE90_gen(void);
+static int vec3_finite(uint32_t p)
+{
+    int k;
+    for (k = 0; k < 3; k++) {
+        float f = MEMF(p + 4u * (uint32_t)k);
+        if (!isfinite(f)) return 0;
+    }
+    return 1;
+}
+void sub_0002CE90(void)
+{
+    uint32_t start = MEM32(g_esp + 4), delta = MEM32(g_esp + 8);
+    if (start && delta && (!vec3_finite(start) || !vec3_finite(delta))) {
+        static unsigned n;
+        if (!(n++ & (n - 1)))     /* 1st, 2nd, 4th, 8th ... */
+            fprintf(stderr, "[NAN] terrain segment with a non-finite point skipped (%u time(s), ret=0x%08X)\n",
+                    n, MEM32(g_esp));
+        g_eax &= ~0xFFu;
+        g_esp += 20;              /* ret 16 */
+        return;
+    }
+    sub_0002CE90_gen();
+}
