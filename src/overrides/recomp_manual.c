@@ -1077,7 +1077,8 @@ void recomp_icall_not_code_log(uint32_t va)
  * billion cells and the game stops (a 4-player Conquest match on Geonosis
  * froze 40 s in, a vehicle or target position having gone NaN). A segment
  * with a non-finite coordinate returns "nothing hit", as the short case
- * does. */
+ * does. The NaN came from acos (see sub_0026B16C below); this stays as a
+ * backstop. */
 void sub_0002CE90_gen(void);
 static int vec3_finite(uint32_t p)
 {
@@ -1101,4 +1102,54 @@ void sub_0002CE90(void)
         return;
     }
     sub_0002CE90_gen();
+}
+
+/* CRT math argument checks: sub_0026B16C (double on the stack) and
+ * sub_0026B129 (double at edx) end with the flags of
+ * "cmp exponent, 0x7FF00000" (inf/NaN test) and return; the caller then calls
+ * the function core (acos 0x2666C5, and 0x265909 / 0x266B4F / 0x267525),
+ * whose first branch reads those flags. The translator hands flags across a
+ * fall-through or tail jump but not across ret-then-call, so the cores read
+ * whatever g_mc an unrelated function left: acos(0.9848) came back 0 in a
+ * Conquest match, the animation slerp divided by sin(0), tank parts and their
+ * effects went NaN, and the terrain walk fed with them froze the game.
+ *
+ * Audit of every other entry that reads g_mc and every call whose return
+ * address branches on flags (capstone over all 76k call sites): the rest are
+ * jump tables / string data decoded as code, or split copies of blocks their
+ * real function runs inline with its own flags; none was reached through
+ * dispatch on any of the 40 smoke maps. Two known leftovers, both harmless in
+ * practice: pow's "call 0x26B129; je 0x2657BF" at 0x26572B is inline and
+ * reads the pre-call compare (only matters for an inf/NaN exponent), and the
+ * XNet checksum entry 0x2B47FC (via tail jmp 0x2B473A) reads a stale carry
+ * (network code; no online play). */
+static void mc_from_cmp(uint32_t a, uint32_t b)
+{
+    uint32_t r = a - b;
+    int32_t sa = (int32_t)a, sb = (int32_t)b;
+    uint8_t p = (uint8_t)r;
+    p ^= p >> 4; p ^= p >> 2; p ^= p >> 1;
+    g_mc[0] = a == b;
+    g_mc[1] = (int32_t)r < 0;
+    g_mc[2] = a < b;
+    g_mc[3] = a <= b;
+    g_mc[4] = sa < sb;
+    g_mc[5] = sa <= sb;
+    g_mc[6] = ((sa ^ sb) & (sa ^ (int32_t)r)) < 0;
+    g_mc[7] = !(p & 1);
+}
+void sub_0026B16C_gen(void);
+void sub_0026B16C(void)
+{
+    uint32_t e = MEM32(g_esp + 8) & 0x7FF00000u;
+    sub_0026B16C_gen();
+    mc_from_cmp(e, 0x7FF00000u);
+}
+void sub_0026B129_gen(void);
+void sub_0026B129(void)
+{
+    uint32_t e = MEM32(g_edx + 4) & 0x7FF00000u;
+    sub_0026B129_gen();
+    if (e != 0x7FF00000u) mc_from_cmp(e, 0x7FF00000u);
+    else mc_from_cmp(0, 0);                 /* "test eax, 0": ZF set, SF/CF/OF clear, PF set */
 }

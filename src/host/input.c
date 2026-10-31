@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "recomp/gen/recomp_types.h"
 #include "recomp/gen/recomp_funcs.h"
@@ -123,6 +124,114 @@ static void keyboard_pad(pad_t *p)
     if (GetAsyncKeyState('D') & 0x8000) p->lx = 32767;
     if (GetAsyncKeyState('W') & 0x8000) p->ly = 32767;
     if (GetAsyncKeyState('S') & 0x8000) p->ly = -32767;
+}
+
+/* ---- autopilot ---------------------------------------------------------- */
+
+/* "GOTO <player> <x> <z>" (live control) steers that player's vehicle to a
+ * map point with the left stick and holds it there (with a radius, stops that
+ * far out and keeps facing it); "GOTO <player> OFF"
+ * stops. "WHERE" logs every player's position and facing. Player objects:
+ * the mission manager at 0x3A2F0C holds the player table (+0x14, player
+ * handle at +0xCC) and the handle -> object tree (+0x18, as 0x00014340
+ * walks it); an object's matrix sits at +0x40 (rows right, up, front, pos). */
+static struct { int on; float x, z, r; unsigned logged; } g_goto[4];
+
+static uint32_t player_obj(int i)
+{
+    uint32_t mgr = MEM32(0x3A2F0Cu), arr, pl, h, node;
+    if (!mgr || !(arr = MEM32(mgr + 0x14)) || !(pl = MEM32(arr + 4 * i)) || !(h = MEM32(pl + 0xCC)))
+        return 0;
+    node = MEM32(MEM32(mgr + 0x18) + 8);
+    while (node) {
+        uint32_t k = MEM32(node + 0x14);
+        if (h < k) node = MEM32(node + 8);
+        else if (h > k) node = MEM32(node + 0xC);
+        else { uint32_t o = MEM32(node + 0x18); return o && (MEM32(o + 4) >> 8 & 1) ? o : 0; }
+    }
+    return 0;
+}
+
+static void where_report(void)
+{
+    int i;
+    for (i = 0; i < 4; i++) {
+        uint32_t o = player_obj(i);
+        if (!o) { fprintf(stderr, "[WHERE] p%d none\n", i + 1); continue; }
+        fprintf(stderr, "[WHERE] p%d obj=%08X pos %.1f %.1f %.1f front %.2f %.2f %.2f\n", i + 1, o,
+                MEMF(o + 0x70), MEMF(o + 0x74), MEMF(o + 0x78), MEMF(o + 0x60), MEMF(o + 0x64), MEMF(o + 0x68));
+    }
+    fflush(stderr);
+}
+
+/* "OBJS": every live object with its position and the first readable name
+ * reachable from its class (obj+0x20), for finding things on the map. */
+static const char *obj_name(uint32_t cls)
+{
+    static char buf[40];
+    int i, j;
+    for (i = 0; i < 64 && cls; i++) {
+        uint32_t a = cls + 4 * i, s = MEM32(a);
+        for (j = 0; j < 2; j++, s = a) {
+            int n = 0;
+            if (s < 0x10000u || s >= 0x04000000u) continue;
+            while (n < 39 && MEM8(s + n) >= 0x20 && MEM8(s + n) < 0x7F) n++;
+            if (n >= 6 && !MEM8(s + n)) { memcpy(buf, (const void *)XBOX_PTR(s), n); buf[n] = 0; return buf; }
+        }
+    }
+    return "?";
+}
+
+/* Current health, as MissionUtility::GetCurHealth reads it: the object's
+ * health component (vtable +0x40, id 0xFBCD164A), float at +0x14. -1 if none. */
+static float obj_health(uint32_t o)
+{
+    uint32_t sp = g_esp, b = g_ebx, si = g_esi, di = g_edi, a = g_eax, c = g_ecx, d = g_edx, comp;
+    recomp_func_t fn = o ? recomp_lookup(MEM32(MEM32(o) + 0x40)) : NULL;
+    if (!fn) return -1.0f;
+    PUSH32(g_esp, 0xFBCD164Au); PUSH32(g_esp, 0);
+    g_ecx = o;
+    fn();
+    comp = g_eax;
+    g_esp = sp; g_ebx = b; g_esi = si; g_edi = di; g_eax = a; g_ecx = c; g_edx = d;
+    return comp ? MEMF(comp + 0x14) : -1.0f;
+}
+
+static void objs_walk(uint32_t node, int depth)
+{
+    uint32_t o;
+    if (!node || depth > 64) return;
+    objs_walk(MEM32(node + 8), depth + 1);
+    o = MEM32(node + 0x18);
+    if (o) fprintf(stderr, "[OBJ] h=%08X obj=%08X pos %.0f %.0f %.0f hp %.0f %s\n", MEM32(node + 0x14), o,
+                   MEMF(o + 0x70), MEMF(o + 0x74), MEMF(o + 0x78), obj_health(o), obj_name(MEM32(o + 0x20)));
+    objs_walk(MEM32(node + 0xC), depth + 1);
+}
+
+static void autopilot(pad_t *p, unsigned port)
+{
+    uint32_t o;
+    float dx, dz, dist, err;
+    unsigned now = (unsigned)GetTickCount();
+    if (port > 3 || !g_goto[port].on || !(o = player_obj((int)port))) return;
+    dx = g_goto[port].x - MEMF(o + 0x70);
+    dz = g_goto[port].z - MEMF(o + 0x78);
+    dist = sqrtf(dx * dx + dz * dz);
+    err = atan2f(dx, dz) - atan2f(MEMF(o + 0x60), MEMF(o + 0x68));
+    while (err > 3.14159265f) err -= 6.2831853f;
+    while (err < -3.14159265f) err += 6.2831853f;
+    {
+        float steer = err * 2.0f;
+        if (steer > 1.0f) steer = 1.0f;
+        if (steer < -1.0f) steer = -1.0f;
+        p->lx = (int16_t)(steer * 32767.0f);
+        if (dist > g_goto[port].r) p->ly = fabsf(err) < 1.2f ? 32767 : 12000;
+    }
+    if (now - g_goto[port].logged >= 1000) {
+        g_goto[port].logged = now;
+        fprintf(stderr, "[GOTO] p%u dist %.0f err %.0f deg\n", port + 1, dist, err * 57.3f);
+        fflush(stderr);
+    }
 }
 
 /* ---- scripted presses -------------------------------------------------- */
@@ -368,6 +477,17 @@ static void live_input(void)
         const char *l = line;
         if (!strncmp(line, "SHOT", 4)) { hle_shot_request = 1; continue; }
         if (!strncmp(line, "PADS", 4)) { pads_report(); continue; }
+        if (!strncmp(line, "WHERE", 5)) { where_report(); continue; }
+        if (!strncmp(line, "GOTO ", 5)) {
+            int pl = 0; float x = 0, z = 0, r = 20.0f;
+            if (sscanf(line + 5, "%d %f %f %f", &pl, &x, &z, &r) >= 1 && pl >= 1 && pl <= 4) {
+                g_goto[pl - 1].r = r;
+                g_goto[pl - 1].on = strstr(line, "OFF") == NULL;
+                g_goto[pl - 1].x = x; g_goto[pl - 1].z = z;
+                fprintf(stderr, "[GOTO] p%d %s %.0f %.0f\n", pl, g_goto[pl - 1].on ? "to" : "off", x, z);
+            }
+            continue;
+        }
         if (!strncmp(line, "VSFOG ", 6)) { extern void hle_vs_tablefog(int); hle_vs_tablefog(atoi(line + 6)); continue; }
         if (!strncmp(line, "DUMPVC ", 7)) { extern void hle_dump_vc(uint32_t); hle_dump_vc((uint32_t)strtoul(line + 7, NULL, 16)); continue; }
         if (!strncmp(line, "SHOWVA ", 7)) { extern void hle_show_va(uint32_t); hle_show_va((uint32_t)strtoul(line + 7, NULL, 16)); continue; }
@@ -508,6 +628,7 @@ static void script_pad(pad_t *p, unsigned port)
             }
         }
     }
+    autopilot(p, port);
 }
 
 static unsigned connected_mask(void)
