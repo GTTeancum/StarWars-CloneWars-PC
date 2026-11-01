@@ -388,6 +388,7 @@ static void rt_note_shown(void)
 
 typedef struct {
     uint32_t data, format, size, sample;
+    int font;                     /* built as an upscaled font sheet */
     IDirect3DTexture8 *tex;
 } tex_entry;
 
@@ -508,6 +509,105 @@ static const grab_t *grab_for_draw(void)
 
 /* Host texture for a guest D3DPixelContainer: Common, Data, Lock, Format, Size.
  * Top mip level only for now. */
+/* ---- font sheets -------------------------------------------------------
+ *
+ * The menus' text comes from small glyph sheets (128x128, alpha-luminance,
+ * hard-edged: five alpha levels) stretched to the screen: at 1080p each
+ * texel covers more than two pixels, and the letters look soft and stepped
+ * beside anything drawn at full resolution. A sheet the title draws as 2D
+ * text is rebuilt four times larger -- bicubic, then a narrow smoothstep
+ * around half coverage, which keeps the strokes' shapes but gives them clean
+ * edges -- and sampled from that instead. Texture coordinates are
+ * normalised, so the title never notices. CW_FONT_UPSCALE=0 turns it off. */
+#define FONT_SCALE 4
+#define FONT_MAX 16
+static uint32_t s_font_res[FONT_MAX];
+static int s_nfont;
+
+static int is_font_res(uint32_t res)
+{
+    for (int i = 0; i < s_nfont; i++) if (s_font_res[i] == res) return 1;
+    return 0;
+}
+
+/* A sheet drawn as pre-transformed quads (2D) in alpha-luminance format is a
+ * font candidate; whether it really is one is settled when it is built. */
+static void note_font_draw(uint32_t res)
+{
+    static int on = -1;
+    if (on < 0) { const char *e = getenv("CW_FONT_UPSCALE"); on = !e || *e != '0'; }
+    if (!on || !res || s_nfont >= FONT_MAX || is_font_res(res)) return;
+    if (((MEM32(res + 0xC) >> 8) & 0xFF) != 0x01 || MEM32(res + 0x10)) return;
+    s_font_res[s_nfont++] = res;
+}
+
+static float cubic_w(float t)                 /* Catmull-Rom */
+{
+    t = t < 0 ? -t : t;
+    if (t < 1.0f) return 1.5f * t * t * t - 2.5f * t * t + 1.0f;
+    if (t < 2.0f) return -0.5f * t * t * t + 2.5f * t * t - 4.0f * t + 2.0f;
+    return 0.0f;
+}
+
+/* Upscale an alpha plane (w x h) by FONT_SCALE into dst (ARGB, rgb = alpha,
+ * as alpha-luminance texels read). Returns 0 if it does not look like a font
+ * sheet (soft gradients), leaving dst untouched. */
+static int font_upscale(const uint8_t *a, uint32_t w, uint32_t h, uint32_t *dst, uint32_t dpitch)
+{
+    int levels[256] = {0}, nlev = 0;
+    uint32_t i, x, y, W = w * FONT_SCALE, H = h * FONT_SCALE;
+    for (i = 0; i < w * h; i++) if (!levels[a[i]]++) nlev++;
+    if (nlev > 5 || !levels[0] || !levels[255]) return 0;
+    for (y = 0; y < H; y++) {
+        uint32_t *row = (uint32_t *)((uint8_t *)dst + y * dpitch);
+        float sy = ((float)y + 0.5f) / FONT_SCALE - 0.5f;
+        int iy = (int)floorf(sy);
+        float fy = sy - (float)iy, wy[4];
+        for (int k = 0; k < 4; k++) wy[k] = cubic_w(fy - (float)(k - 1));
+        for (x = 0; x < W; x++) {
+            float sx = ((float)x + 0.5f) / FONT_SCALE - 0.5f, v = 0.0f, t;
+            int ix = (int)floorf(sx);
+            float fx = sx - (float)ix;
+            for (int ky = 0; ky < 4; ky++) {
+                int yy = iy + ky - 1;
+                yy = yy < 0 ? 0 : yy >= (int)h ? (int)h - 1 : yy;
+                for (int kx = 0; kx < 4; kx++) {
+                    int xx = ix + kx - 1;
+                    xx = xx < 0 ? 0 : xx >= (int)w ? (int)w - 1 : xx;
+                    v += a[yy * w + xx] * wy[ky] * cubic_w(fx - (float)(kx - 1));
+                }
+            }
+            t = (v / 255.0f - 0.40f) / 0.20f;
+            t = t < 0 ? 0 : t > 1 ? 1 : t;
+            {
+                uint32_t c = (uint32_t)(t * t * (3.0f - 2.0f * t) * 255.0f + 0.5f);
+                row[x] = (c << 24) | (c << 16) | (c << 8) | c;
+            }
+        }
+    }
+    return 1;
+}
+
+/* Decode a swizzled alpha-luminance sheet and fill tex (FONT_SCALE times
+ * its size) with the upscaled glyphs; 0 if it is not a font sheet. */
+static int font_fill(IDirect3DTexture8 *tex, uint32_t va, uint32_t fmt, uint32_t w, uint32_t h)
+{
+    uint32_t bpp = fmt_bpp(fmt), i, ok = 0;
+    uint8_t *lin = (uint8_t *)malloc(w * h * bpp), *a = (uint8_t *)malloc(w * h);
+    D3DLOCKED_RECT lr;
+    if (lin && a) {
+        xbox_unswizzle_rect(lin, (const uint8_t *)gptr(va), w, h, bpp);
+        for (i = 0; i < w * h; i++) a[i] = (uint8_t)(texel_argb(fmt, lin + i * bpp) >> 24);
+        if (SUCCEEDED(IDirect3DTexture8_LockRect(tex, 0, &lr, NULL, 0))) {
+            ok = (uint32_t)font_upscale(a, w, h, (uint32_t *)lr.pBits, (uint32_t)lr.Pitch);
+            IDirect3DTexture8_UnlockRect(tex, 0);
+        }
+    }
+    free(lin);
+    free(a);
+    return (int)ok;
+}
+
 static IDirect3DTexture8 *get_texture(uint32_t res)
 {
     uint32_t data, format, size, fmt, w, h, pitch, va, bytes, sample, levels;
@@ -588,26 +688,53 @@ static IDirect3DTexture8 *get_texture(uint32_t res)
                 : (pitch ? pitch * h : w * h * fmt_bpp(fmt));
     sample = tex_sample(va, bytes);
 
-    for (i = 0; i < TEX_CACHE; i++) {
-        tex_entry *e = &s_texcache[i];
-        if (e->tex && e->data == data && e->format == format && e->size == size) {
+    {
+        /* Font sheets (see font_upscale) are rebuilt larger, once. */
+        tex_entry *e = NULL;
+        int want_font = levels == 1 && fmt == 0x01 && !size && is_font_res(res);
+        for (i = 0; i < TEX_CACHE; i++) {
+            tex_entry *c = &s_texcache[i];
+            if (c->tex && c->data == data && c->format == format && c->size == size) { e = c; break; }
+        }
+        if (e && want_font && e->font == 0) {     /* first seen as text: rebuild */
+            IDirect3DTexture8_Release(e->tex);
+            e->tex = NULL;
+        } else if (e) {
             if (e->sample == sample)
                 return e->tex;
-            tex = e->tex;                 /* same texture, new contents */
+            tex = e->tex;                         /* same texture, new contents */
             e->sample = sample;
-            break;
+            if (e->font == 1) {
+                font_fill(tex, va, fmt, w, h);
+                return tex;
+            }
         }
-    }
-    if (!tex) {
-        tex_entry *e = &s_texcache[s_texnext];
-        s_texnext = (s_texnext + 1) % TEX_CACHE;
-        if (e->tex)
-            IDirect3DTexture8_Release(e->tex);
-        memset(e, 0, sizeof(*e));
-        if (FAILED(IDirect3DDevice8_CreateTexture(s_dev, w, h, levels, 0, hostfmt,
-                                                  D3DPOOL_MANAGED, &tex)))
-            return NULL;
-        e->data = data; e->format = format; e->size = size; e->sample = sample; e->tex = tex;
+        if (!tex) {
+            if (!e) {
+                e = &s_texcache[s_texnext];
+                s_texnext = (s_texnext + 1) % TEX_CACHE;
+                if (e->tex)
+                    IDirect3DTexture8_Release(e->tex);
+                memset(e, 0, sizeof(*e));
+            }
+            if (want_font && e->font == 0 &&
+                SUCCEEDED(IDirect3DDevice8_CreateTexture(s_dev, w * FONT_SCALE, h * FONT_SCALE, 1, 0,
+                                                         D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &tex))) {
+                if (font_fill(tex, va, fmt, w, h)) {
+                    e->data = data; e->format = format; e->size = size; e->sample = sample;
+                    e->tex = tex; e->font = 1;
+                    d3d_log("font sheet %08X %ux%u drawn at %ux", res, w, h, FONT_SCALE);
+                    return tex;
+                }
+                IDirect3DTexture8_Release(tex);   /* soft edges: not a font */
+                tex = NULL;
+                e->font = -1;
+            }
+            if (FAILED(IDirect3DDevice8_CreateTexture(s_dev, w, h, levels, 0, hostfmt,
+                                                      D3DPOOL_MANAGED, &tex)))
+                return NULL;
+            e->data = data; e->format = format; e->size = size; e->sample = sample; e->tex = tex;
+        }
     }
 
     /* Swizzled and DXT textures carry their mip chain right after level 0,
@@ -1093,7 +1220,7 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
         verts = (const uint8_t *)gptr(base + start * stride);
         if ((s_vshader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW && nverts) {
             verts = rhw_map(verts, 0, nverts - 1, stride);
-            if (xprim == 8) rhw_inset_quads(verts, nverts, stride);
+            if (xprim == 8) { note_font_draw(s_tex[0]); rhw_inset_quads(verts, nverts, stride); }
             verts = grab_fix_uv(verts, 0, nverts - 1, stride);
         } else if (nverts) {
             hud_moved = hud_anchor_ff(verts, 0, nverts - 1, stride);
@@ -1455,6 +1582,12 @@ static void rhw_inset_quads(const uint8_t *vconst, uint32_t nverts, uint32_t str
     if (off + 8 > stride) return;
     t = get_texture(s_tex[0]);
     if (!t || FAILED(IDirect3DTexture8_GetLevelDesc(t, 0, &d)) || !d.Width || !d.Height) return;
+    if (is_font_res(s_tex[0]) && d.Width > FONT_SCALE && d.Height > FONT_SCALE) {
+        /* Half a texel of the sheet as drawn on the Xbox: a font sheet's host
+         * copy is FONT_SCALE times larger, and its upscaled edges reach that
+         * far into the neighbouring glyph's cell. */
+        d.Width /= FONT_SCALE; d.Height /= FONT_SCALE;
+    }
     hu = 0.5f / (float)d.Width; hv = 0.5f / (float)d.Height;
     for (q = 0; q + 4 <= nverts; q += 4) {
         float umin = 1e9f, umax = -1e9f, vmin = 1e9f, vmax = -1e9f;
