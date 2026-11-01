@@ -522,11 +522,22 @@ static const grab_t *grab_for_draw(void)
 #define FONT_SCALE 4
 #define FONT_MAX 16
 static uint32_t s_font_res[FONT_MAX];
+static uint8_t s_font_mg[FONT_MAX];      /* redrawn from Michroma */
+static const void *s_font_fs[FONT_MAX];  /* its layout (font_sheet), or NULL */
+static const void *s_last_fs;            /* set by font_michroma */
+static void *s_font_atlas[FONT_MAX];     /* its padded atlas (font_atlas) */
+static void *s_last_atlas;               /* set by font_atlas_build */
 static int s_nfont;
 
 static int is_font_res(uint32_t res)
 {
     for (int i = 0; i < s_nfont; i++) if (s_font_res[i] == res) return 1;
+    return 0;
+}
+
+static int is_michroma_res(uint32_t res)
+{
+    for (int i = 0; i < s_nfont; i++) if (s_font_res[i] == res) return s_font_mg[i];
     return 0;
 }
 
@@ -581,12 +592,190 @@ static int font_upscale(const uint8_t *a, uint32_t w, uint32_t h, uint32_t *dst,
             t = t < 0 ? 0 : t > 1 ? 1 : t;
             {
                 uint32_t c = (uint32_t)(t * t * (3.0f - 2.0f * t) * 255.0f + 0.5f);
-                row[x] = (c << 24) | (c << 16) | (c << 8) | c;
+                row[x] = (c << 24) | 0x00FFFFFFu;     /* white; coverage in alpha only */
             }
         }
     }
     return 1;
 }
+
+/* ---- Michroma glyphs --------------------------------------------------
+ *
+ * The title's three fonts (bg12, bg14, bg16b) are a Eurostile-style face;
+ * Michroma, an open-licence Microgramma revival, is close to it. Each of
+ * the title's glyph sheets is recognised by a hash of its contents, and every
+ * character it holds is redrawn from Michroma at full resolution, stretched
+ * to exactly the box the original glyph had -- the title's spacing and
+ * layout are untouched. Lowercase is drawn as capitals: the title's
+ * lowercase are small capitals. Characters Michroma lacks keep the upscaled
+ * original. CW_FONT_MICHROMA=0 keeps the upscaled original font. */
+#include "d3d8_fonttab.inc"
+
+#define MG_SIZE 160                       /* rasterising height, pixels */
+#define MG_CANVAS (MG_SIZE * 4)
+/* Michroma Regular is lighter than the title's face: strokes are thickened
+ * by this fraction of the rasterising height. */
+#define MG_EMBOLDEN 0.035f
+static HDC s_mg_dc;
+static HFONT s_mg_font;
+static uint8_t *s_mg_bits;
+static int s_mg_ok = -1;
+
+static int michroma_init(void)
+{
+    DWORD n = 0;
+    BITMAPINFO bi = {0};
+    HBITMAP bmp;
+    const char *e = getenv("CW_FONT_MICHROMA");
+    if (s_mg_ok >= 0) return s_mg_ok;
+    s_mg_ok = 0;
+    if (e && *e == '0') return 0;
+    if (!AddFontMemResourceEx((void *)s_michroma_ttf, sizeof s_michroma_ttf, NULL, &n) || !n) return 0;
+    s_mg_dc = CreateCompatibleDC(NULL);
+    bi.bmiHeader.biSize = sizeof bi.bmiHeader;
+    bi.bmiHeader.biWidth = MG_CANVAS;
+    bi.bmiHeader.biHeight = -MG_CANVAS;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bmp = CreateDIBSection(s_mg_dc, &bi, DIB_RGB_COLORS, (void **)&s_mg_bits, NULL, 0);
+    s_mg_font = CreateFontA(-MG_SIZE, 0, 0, 0, FW_NORMAL, 0, 0, 0, ANSI_CHARSET, 0, 0,
+                            ANTIALIASED_QUALITY, 0, "Michroma");
+    if (!bmp || !s_mg_font) return 0;
+    SelectObject(s_mg_dc, bmp);
+    SelectObject(s_mg_dc, s_mg_font);
+    SetBkMode(s_mg_dc, TRANSPARENT);
+    SetTextColor(s_mg_dc, RGB(255, 255, 255));
+    SelectObject(s_mg_dc, CreatePen(PS_SOLID, (int)(MG_SIZE * MG_EMBOLDEN + 0.5f), RGB(255, 255, 255)));
+    SelectObject(s_mg_dc, GetStockObject(WHITE_BRUSH));
+    s_mg_ok = 1;
+    return 1;
+}
+
+/* Rasterise c large and resample its ink box into the W x H box at dst. */
+static int michroma_glyph(WCHAR c, uint32_t *dst, uint32_t dpitch, int W, int H)
+{
+    const int S = MG_CANVAS;
+    WORD gi;
+    int x, y, x0 = S, y0 = S, x1 = -1, y1 = -1;
+    if (GetGlyphIndicesW(s_mg_dc, &c, 1, &gi, GGI_MARK_NONEXISTING_GLYPHS) == GDI_ERROR || gi == 0xFFFF)
+        return 0;
+    int gap0 = -1, gap1 = -1, gapx = S;
+    if (c == L'C') {
+        /* Michroma's C opens only a sliver, and thickening closes it into an
+         * O. Find the opening on the plain outline -- the rows with no ink in
+         * the right-hand fifth -- and cut it back out after thickening. */
+        int cx0 = S, cx1 = -1;
+        memset(s_mg_bits, 0, (size_t)S * S * 4);
+        BeginPath(s_mg_dc);
+        TextOutW(s_mg_dc, MG_SIZE, MG_SIZE, &c, 1);
+        EndPath(s_mg_dc);
+        FillPath(s_mg_dc);
+        GdiFlush();
+        for (y = 0; y < S; y++)
+            for (x = 0; x < S; x++)
+                if (s_mg_bits[(y * S + x) * 4 + 1]) { if (x < cx0) cx0 = x; if (x > cx1) cx1 = x; }
+        if (cx1 > cx0) {
+            int band = cx1 - (cx1 - cx0) / 5, ink_top = -1, ink_bot = -1;
+            for (y = 0; y < S; y++) {
+                int any = 0;
+                for (x = band; x <= cx1; x++) if (s_mg_bits[(y * S + x) * 4 + 1]) { any = 1; break; }
+                if (any) { if (ink_top < 0) ink_top = y; ink_bot = y; }
+            }
+            for (y = ink_top; y >= 0 && y <= ink_bot; y++) {
+                int any = 0;
+                for (x = band; x <= cx1; x++) if (s_mg_bits[(y * S + x) * 4 + 1]) { any = 1; break; }
+                if (!any) { if (gap0 < 0) gap0 = y; gap1 = y; }
+            }
+            gapx = cx0 + (cx1 - cx0) / 2;     /* right of the bowl's middle */
+        }
+    }
+    memset(s_mg_bits, 0, (size_t)S * S * 4);
+    /* As a path, filled and stroked: the stroke is the emboldening. The
+     * raster is unsmoothed, but resampled down tenfold or more. */
+    BeginPath(s_mg_dc);
+    TextOutW(s_mg_dc, MG_SIZE, MG_SIZE, &c, 1);
+    EndPath(s_mg_dc);
+    StrokeAndFillPath(s_mg_dc);
+    GdiFlush();
+    if (gap0 >= 0)                        /* reopen the gap to its plain height */
+        for (y = gap0; y <= gap1; y++)
+            for (x = gapx; x < S; x++)
+                s_mg_bits[(y * S + x) * 4 + 1] = 0;
+    for (y = 0; y < S; y++)
+        for (x = 0; x < S; x++)
+            if (s_mg_bits[(y * S + x) * 4 + 1] > 8) {
+                if (x < x0) x0 = x; if (x > x1) x1 = x;
+                if (y < y0) y0 = y; if (y > y1) y1 = y;
+            }
+    if (x1 < x0) return 0;
+    {
+        float sw = (float)(x1 - x0 + 1) / W, sh = (float)(y1 - y0 + 1) / H;
+        for (y = 0; y < H; y++) {
+            uint32_t *row = (uint32_t *)((uint8_t *)dst + y * dpitch);
+            int ya = y0 + (int)(y * sh), yb = y0 + (int)((y + 1) * sh);
+            if (yb <= ya) yb = ya + 1;
+            for (x = 0; x < W; x++) {
+                int xa = x0 + (int)(x * sw), xb = x0 + (int)((x + 1) * sw), sum = 0, n = 0, i, j;
+                if (xb <= xa) xb = xa + 1;
+                for (j = ya; j < yb && j < S; j++)
+                    for (i = xa; i < xb && i < S; i++) { sum += s_mg_bits[(j * S + i) * 4 + 1]; n++; }
+                {
+                    uint32_t v = n ? (uint32_t)(sum / n) : 0;
+                    row[x] = (v << 24) | 0x00FFFFFFu;     /* white; coverage in alpha only */
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+/* Returns 1 when the sheet was redrawn from Michroma. The sheet is cleared
+ * first and only the glyph boxes are filled -- Michroma's from the font, the
+ * rest copied back from the upscaled original -- so nothing sits between
+ * boxes for a quad's filter to pick up, and the quads can sample right to
+ * the edges of their box (see rhw_inset_quads). */
+static int font_michroma(const uint8_t *a, uint32_t *dst, uint32_t dpitch)
+{
+    const uint32_t S = 128 * FONT_SCALE;
+    uint32_t h = 0x811C9DC5u, y;
+    const font_sheet *fs = NULL;
+    uint32_t *keep;
+    int i, k, drawn = 0;
+    for (i = 0; i < 128 * 128; i++) h = (h ^ a[i]) * 0x01000193u;
+    for (k = 0; k < (int)(sizeof s_font_sheets / sizeof s_font_sheets[0]); k++)
+        if (s_font_sheets[k].hash == h) fs = &s_font_sheets[k];
+    s_last_fs = NULL;
+    if (!fs || !michroma_init() || !(keep = (uint32_t *)malloc((size_t)S * S * 4))) return 0;
+    s_last_fs = fs;
+    for (y = 0; y < S; y++) {
+        uint32_t *row = (uint32_t *)((uint8_t *)dst + y * dpitch);
+        memcpy(keep + y * S, row, S * 4);
+        memset(row, 0, S * 4);
+    }
+    for (i = 0; i < fs->n; i++) {
+        const font_glyph *g = &fs->g[i];
+        WCHAR c = g->c >= 'a' && g->c <= 'z' ? (WCHAR)(g->c - 32) : (WCHAR)g->c;
+        uint32_t bx = g->x * FONT_SCALE, by = g->y * FONT_SCALE, bw = g->w * FONT_SCALE, bh = g->h * FONT_SCALE;
+        uint32_t *box = (uint32_t *)((uint8_t *)dst + by * dpitch) + bx;
+        if (g->c < 0x80 && michroma_glyph(c, box, dpitch, (int)bw, (int)bh)) {
+            drawn++;
+            continue;
+        }
+        for (y = 0; y < bh && by + y < S; y++)      /* not in Michroma: the original */
+            memcpy((uint8_t *)box + y * dpitch, keep + (by + y) * S + bx, bw * 4);
+    }
+    free(keep);
+    d3d_log("font sheet %08X: %d glyphs from Michroma", h, drawn);
+    return 1;
+}
+
+static const font_sheet *font_sheet_of(uint32_t res)
+{
+    for (int i = 0; i < s_nfont; i++) if (s_font_res[i] == res) return (const font_sheet *)s_font_fs[i];
+    return NULL;
+}
+
+#include "d3d8_fontatlas.inc"
 
 /* Decode a swizzled alpha-luminance sheet and fill tex (FONT_SCALE times
  * its size) with the upscaled glyphs; 0 if it is not a font sheet. */
@@ -600,6 +789,10 @@ static int font_fill(IDirect3DTexture8 *tex, uint32_t va, uint32_t fmt, uint32_t
         for (i = 0; i < w * h; i++) a[i] = (uint8_t)(texel_argb(fmt, lin + i * bpp) >> 24);
         if (SUCCEEDED(IDirect3DTexture8_LockRect(tex, 0, &lr, NULL, 0))) {
             ok = (uint32_t)font_upscale(a, w, h, (uint32_t *)lr.pBits, (uint32_t)lr.Pitch);
+            if (ok && w == 128 && h == 128 && font_michroma(a, (uint32_t *)lr.pBits, (uint32_t)lr.Pitch)) {
+                ok = 2;
+                font_atlas_build((const font_sheet *)s_last_fs, a);
+            }
             IDirect3DTexture8_UnlockRect(tex, 0);
         }
     }
@@ -720,7 +913,14 @@ static IDirect3DTexture8 *get_texture(uint32_t res)
             if (want_font && e->font == 0 &&
                 SUCCEEDED(IDirect3DDevice8_CreateTexture(s_dev, w * FONT_SCALE, h * FONT_SCALE, 1, 0,
                                                          D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &tex))) {
-                if (font_fill(tex, va, fmt, w, h)) {
+                int filled = font_fill(tex, va, fmt, w, h);
+                for (int k = 0; k < s_nfont; k++)
+                    if (s_font_res[k] == res) {
+                        s_font_mg[k] = filled == 2;
+                        s_font_fs[k] = filled == 2 ? s_last_fs : NULL;
+                        s_font_atlas[k] = filled == 2 ? s_last_atlas : NULL;
+                    }
+                if (filled) {
                     e->data = data; e->format = format; e->size = size; e->sample = sample;
                     e->tex = tex; e->font = 1;
                     d3d_log("font sheet %08X %ux%u drawn at %ux", res, w, h, FONT_SCALE);
@@ -1220,7 +1420,12 @@ static void draw(uint32_t xprim, uint32_t nverts, uint32_t start, uint32_t pidx)
         verts = (const uint8_t *)gptr(base + start * stride);
         if ((s_vshader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW && nverts) {
             verts = rhw_map(verts, 0, nverts - 1, stride);
-            if (xprim == 8) { note_font_draw(s_tex[0]); rhw_inset_quads(verts, nverts, stride); }
+            if (xprim == 8) {
+                note_font_draw(s_tex[0]);
+                const uint8_t *fa = font_atlas_remap(verts, nverts, stride);   /* d3d8_fontatlas.inc */
+                if (fa) verts = fa;
+                else rhw_inset_quads(verts, nverts, stride);
+            }
             verts = grab_fix_uv(verts, 0, nverts - 1, stride);
         } else if (nverts) {
             hud_moved = hud_anchor_ff(verts, 0, nverts - 1, stride);
@@ -1582,7 +1787,7 @@ static void rhw_inset_quads(const uint8_t *vconst, uint32_t nverts, uint32_t str
     if (off + 8 > stride) return;
     t = get_texture(s_tex[0]);
     if (!t || FAILED(IDirect3DTexture8_GetLevelDesc(t, 0, &d)) || !d.Width || !d.Height) return;
-    if (is_font_res(s_tex[0]) && d.Width > FONT_SCALE && d.Height > FONT_SCALE) {
+    if (is_font_res(s_tex[0]) && !is_michroma_res(s_tex[0]) && d.Width > FONT_SCALE && d.Height > FONT_SCALE) {
         /* Half a texel of the sheet as drawn on the Xbox: a font sheet's host
          * copy is FONT_SCALE times larger, and its upscaled edges reach that
          * far into the neighbouring glyph's cell. */
