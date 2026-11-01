@@ -35,12 +35,18 @@
 typedef struct {
     uint32_t key[64];           /* RS 0..56 minus constants, + modes */
     DWORD    pc_ps;
+    DWORD    pc_ps2;            /* split: second additive pass (see psh_bind) */
     int      ok;
     int      nconst;
     int16_t  const_src[8];      /* RS index per PC constant, -1 = zero */
 } psh_rec;
 
 static psh_rec *s_psh[PSH_MAX];
+/* Building one half of a split final combiner: 0 whole, 1 = A*B + (1-A)*C
+ * only, 2 = D only. */
+static int      s_psh_split;
+/* Second pass for the draw in progress, 0 for none (d3d8.c draws again). */
+static DWORD    s_psh_pass2;
 static int      s_npsh;
 static unsigned s_psh_fail_draws;
 
@@ -410,6 +416,19 @@ static int psh_translate(psh_out *o)
         DWORD r0rgb = 0x80000000u | (PS_TEMP << 28) | (0x7u << 16);
         DWORD r0a = 0x80000000u | (PS_TEMP << 28) | (0x8u << 16);
         o->stage = 0;
+        if (s_psh_split == 1) D = XR_ZERO;                 /* first pass: no D */
+        if (s_psh_split == 2) {                            /* second pass: D alone */
+            uint32_t E = (efg >> 24) & 0xFF, F = (efg >> 16) & 0xFF;
+            if ((D & 0xF) == XR_EF && (D & 0xF0) == 0) {
+                s[0] = psh_src(o, E, 0, 1); s[1] = psh_src(o, F, 0, 1);
+                pop(o, D3DSIO_MUL, r0rgb, s, 2);
+            } else {
+                s[0] = psh_src(o, D, 0, 1);
+                pop(o, D3DSIO_MOV, r0rgb, s, 1);
+            }
+            A = B = C = XR_ZERO;
+            goto final_alpha;
+        }
         {
             /* V1R0_SUM (V1 + R0, flags may complement either) and EF_PROD
              * (E*F) are computed into r1 before the final op; only one of
@@ -477,6 +496,7 @@ static int psh_translate(psh_out *o)
                 pop(o, D3DSIO_ADD, r0rgb, s, 2);
             }
         }
+    final_alpha:
         if (!((G & 0xF) == XR_R0 && (G & 0x10) && (G & 0xE0) == 0)) {
             s[0] = psh_src(o, G | 0x10, 1, 1);
             pop(o, D3DSIO_MOV, r0a, s, 1);
@@ -546,7 +566,30 @@ static int psh_bind(void)
         r = (psh_rec *)calloc(1, sizeof *r);
         if (!o || !r) { free(o); free(r); return 0; }
         memcpy(r->key, key, sizeof key);
-        if (psh_translate(o)) {
+        s_psh_split = 0;
+        if (!psh_translate(o) && o->arith > 8 && (XRS(8) & 0xFF) != XR_ZERO) {
+            /* Over the ps.1.1 budget with a final "+ D". When the draw adds
+             * its result to the frame (blend ONE, ONE), A*B + (1-A)*C and D
+             * can be drawn as two additive passes instead of one: the sum on
+             * screen is the same. The rock spires' four-texture blend in
+             * System Link maps is such a pass, ten instructions as one. */
+            psh_out *o2 = (psh_out *)calloc(1, sizeof *o2);
+            s_psh_split = 1;
+            if (o2 && psh_translate(o)) {
+                s_psh_split = 2;
+                if (psh_translate(o2) &&
+                    SUCCEEDED(IDirect3DDevice8_CreatePixelShader(s_dev, o2->tok, &r->pc_ps2))) {
+                    snprintf(o->why, sizeof o->why, "split in two additive passes");
+                } else {
+                    o->bad = 1;
+                }
+            } else {
+                o->bad = 1;
+            }
+            free(o2);
+            s_psh_split = 0;
+        }
+        if (!o->bad) {
             if (getenv("CW_PSH_LOG")) {
                 int k;
                 fprintf(stderr, "[PSH]     tokens:");
@@ -633,5 +676,8 @@ static int psh_bind(void)
     }
     IDirect3DDevice8_SetPixelShader(s_dev, r->pc_ps);
     psh_load_constants(r);
+    /* A split pair only stands for the original under additive blending. */
+    s_psh_pass2 = r->pc_ps2 && XRS(XRS_ALPHABLENDENABLE) &&
+                  XRS(XRS_SRCBLEND) == 1 && XRS(XRS_DESTBLEND) == 1 ? r->pc_ps2 : 0;
     return 1;
 }

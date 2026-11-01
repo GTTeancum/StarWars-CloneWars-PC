@@ -36,6 +36,8 @@
  * code; the joiner looks it up, lists itself under the code's join entry so
  * the host can send first (hole punching), and both send HELLO until one gets
  * through. The host's session then shows up in the game's own search list.
+ * The host sees the code below the menus (d3d8.c), in the window title and
+ * on the clipboard.
  *
  *   CW_NET_HOST=1            host without a code, on CW_NET_PORT (default 34100)
  *   CW_NET_JOIN=addr[:port]  join a host directly, without a code
@@ -397,6 +399,7 @@ static int ask_code(char *code, size_t n)
 static const char CODE_ALPHABET[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 static char s_code[16];                  /* hosting under this code */
 static char s_join_code[16];             /* joining under this code */
+static char s_code_shown[16];            /* hosting code, ABCD-EFG */
 static volatile LONG s_host_gen;          /* bumps when a new game is created */
 static volatile LONG s_asking;
 static DWORD s_last_search;
@@ -459,8 +462,15 @@ static void start_hosting(void)
     snprintf(msg, sizeof msg, "Join code %s", shown);
     set_title(msg);
     copy_to_clipboard(shown);
-    notice("Your join code is  %s\n\nIt's on the clipboard and in the window title. "
-           "Send it to your friends; they pick System Link > Search and type it in.", shown);
+    snprintf(s_code_shown, sizeof s_code_shown, "%s", shown);
+    fprintf(stderr, "[NET] your join code is %s\n", shown);
+}
+
+/* The code as the menus show it (src/platform/d3d8.c draws it below the UI),
+ * or "" when this machine is not hosting. */
+const char *cw_net_join_code(void)
+{
+    return s_mode == 1 ? s_code_shown : "";
 }
 
 /* Where a joiner sends HELLO: everything the DHT lists under the code, plus

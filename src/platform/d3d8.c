@@ -813,6 +813,7 @@ static void apply_state(void)
     float f;
 
     if (getenv("CW_PSH_LOG")) ps_dump_once();
+    s_psh_pass2 = 0;
     if (s_pshader && !getenv("CW_NO_PSH"))
         use_ps = psh_bind();
     if (!use_ps)
@@ -1012,11 +1013,19 @@ static void chk_DIPUP(IDirect3DDevice8 *d, D3DPRIMITIVETYPE pt, UINT lo, UINT n,
 {
     HRESULT hr = IDirect3DDevice8_DrawIndexedPrimitiveUP(d, pt, lo, n, prims, idx, f, v, stride);
     if (FAILED(hr)) draw_failed(hr, "DrawIndexedPrimitiveUP");
+    if (s_psh_pass2) {                   /* second half of a split pixel shader */
+        IDirect3DDevice8_SetPixelShader(d, s_psh_pass2);
+        IDirect3DDevice8_DrawIndexedPrimitiveUP(d, pt, lo, n, prims, idx, f, v, stride);
+    }
 }
 static void chk_DPUP(IDirect3DDevice8 *d, D3DPRIMITIVETYPE pt, UINT prims, const void *v, UINT stride)
 {
     HRESULT hr = IDirect3DDevice8_DrawPrimitiveUP(d, pt, prims, v, stride);
     if (FAILED(hr)) draw_failed(hr, "DrawPrimitiveUP");
+    if (s_psh_pass2) {
+        IDirect3DDevice8_SetPixelShader(d, s_psh_pass2);
+        IDirect3DDevice8_DrawPrimitiveUP(d, pt, prims, v, stride);
+    }
 }
 
 #include "d3d8_vsh.inc"
@@ -1900,6 +1909,7 @@ void hle_set_fxaa(int on) { if (s_ps_fxaa && s_ps_luma) s_fxaa = on; }
 void hle_frame_key(unsigned *seg, unsigned *off) { *seg = s_seg; *off = s_frames - s_seg_start; }
 
 static void ovl_composite(void);
+static void code_overlay(void);
 static void present_frame(int from_swap);
 static uint32_t s_last_swap;
 
@@ -2004,6 +2014,7 @@ static void m_swap(void)
     s_last_swap = (uint32_t)GetTickCount();
     IDirect3DDevice8_EndScene(s_dev);
     ovl_composite();
+    code_overlay();
     present_frame(1);
     pump_messages();
     IDirect3DDevice8_BeginScene(s_dev);
@@ -2053,17 +2064,8 @@ static int32_t   s_ovl_dst[4];                 /* left, top, right, bottom */
 static uint32_t  s_ovl_key, s_ovl_keyen, s_ovl_last, s_last_swap;
 static IDirect3DTexture8 *s_comp_tex;
 
-static void ovl_quad(IDirect3DTexture8 *t, float x0, float y0, float x1, float y1)
+static void ovl_quad_prepare(IDirect3DTexture8 *t)
 {
-    struct { float x, y, z, rhw; float u, v; } quad[4];
-    static const float ux[4] = {0, 1, 0, 1}, vy[4] = {0, 0, 1, 1};
-    int i;
-    for (i = 0; i < 4; i++) {
-        quad[i].x = x0 + ux[i] * (x1 - x0) - 0.5f;
-        quad[i].y = y0 + vy[i] * (y1 - y0) - 0.5f;
-        quad[i].z = 0.0f; quad[i].rhw = 1.0f;
-        quad[i].u = ux[i]; quad[i].v = vy[i];
-    }
     IDirect3DDevice8_SetPixelShader(s_dev, 0);
     IDirect3DDevice8_SetVertexShader(s_dev, D3DFVF_XYZRHW | D3DFVF_TEX1);
     IDirect3DDevice8_SetRenderState(s_dev, D3DRS_ZENABLE, FALSE);
@@ -2085,6 +2087,19 @@ static void ovl_quad(IDirect3DTexture8 *t, float x0, float y0, float x1, float y
     IDirect3DDevice8_SetTextureStageState(s_dev, 0, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
     IDirect3DDevice8_SetTextureStageState(s_dev, 0, D3DTSS_ADDRESSV, D3DTADDRESS_CLAMP);
     IDirect3DDevice8_SetTextureStageState(s_dev, 1, D3DTSS_COLOROP, D3DTOP_DISABLE);
+}
+
+static void ovl_quad_draw(float x0, float y0, float x1, float y1)
+{
+    struct { float x, y, z, rhw; float u, v; } quad[4];
+    static const float ux[4] = {0, 1, 0, 1}, vy[4] = {0, 0, 1, 1};
+    int i;
+    for (i = 0; i < 4; i++) {
+        quad[i].x = x0 + ux[i] * (x1 - x0) - 0.5f;
+        quad[i].y = y0 + vy[i] * (y1 - y0) - 0.5f;
+        quad[i].z = 0.0f; quad[i].rhw = 1.0f;
+        quad[i].u = ux[i]; quad[i].v = vy[i];
+    }
     {
         /* Whole-target quads must not be clipped by the title's viewport. */
         D3DVIEWPORT8 keep, full = { 0, 0, 0, 0, 0.0f, 1.0f };
@@ -2101,6 +2116,12 @@ static void ovl_quad(IDirect3DTexture8 *t, float x0, float y0, float x1, float y
         IDirect3DDevice8_SetViewport(s_dev, &keep);
     }
     IDirect3DDevice8_SetTexture(s_dev, 0, NULL);
+}
+
+static void ovl_quad(IDirect3DTexture8 *t, float x0, float y0, float x1, float y1)
+{
+    ovl_quad_prepare(t);
+    ovl_quad_draw(x0, y0, x1, y1);
 }
 
 /* The overlay's DstRect is in the 640x480 layout: map it (movies stay 4:3). */
@@ -2500,6 +2521,133 @@ static void ovl_composite(void)
         IDirect3DSurface8_Release(img);
         IDirect3DSurface8_Release(bb);
     }
+}
+
+/* ---- join code on screen ------------------------------------------------ */
+
+/* While this machine hosts a System Link game (src/host/net.c), the menus
+ * show "JOIN CODE: ABCD-EFG" in white below the UI, centred, so the host can
+ * read it out without leaving the game. Drawn into each presented frame like
+ * the video overlay, never during a match (the mission-running flag at
+ * 0x005A71CC). The text is rasterised once with GDI into a texture --
+ * white, with a soft dark outline so it reads over the hangar floor -- and
+ * redrawn only when the code or the screen scale changes. Every device state
+ * it touches is put back with a state block, since the title keeps its own
+ * copy of what it last set. */
+const char *cw_net_join_code(void);            /* src/host/net.c: "" when not hosting */
+
+#define CODE_BAND_TOP 438.0f                   /* in the 640x480 layout */
+#define CODE_BAND_H    30.0f
+
+static IDirect3DTexture8 *s_code_tex;
+static char s_code_text[48];
+static int s_code_w, s_code_h;
+static DWORD s_code_sb;
+
+static int code_raster(const char *text, int w, int h)
+{
+    BITMAPINFO bi = {0};
+    void *bits = NULL;
+    HDC dc = CreateCompatibleDC(NULL);
+    HBITMAP bmp;
+    HFONT font;
+    RECT r = { 0, 0, w, h };
+    D3DLOCKED_RECT lr;
+    int ok = 0;
+
+    bi.bmiHeader.biSize = sizeof bi.bmiHeader;
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bmp = CreateDIBSection(dc, &bi, DIB_RGB_COLORS, &bits, NULL, 0);
+    if (!bmp) { DeleteDC(dc); return 0; }
+    SelectObject(dc, bmp);
+    memset(bits, 0, (size_t)w * h * 4);
+    font = CreateFontA(-(int)(h * 0.62f), 0, 0, 0, FW_BOLD, 0, 0, 0, ANSI_CHARSET, 0, 0,
+                       ANTIALIASED_QUALITY, 0, "Segoe UI");
+    SelectObject(dc, font);
+    SetBkMode(dc, TRANSPARENT);
+    /* Outline in the red channel (the text drawn at small offsets), the
+     * text itself in green; combined into colour and alpha below. */
+    SetTextColor(dc, RGB(255, 0, 0));
+    for (int dy = -2; dy <= 2; dy++)
+        for (int dx = -2; dx <= 2; dx++) {
+            RECT o = { r.left + dx, r.top + dy, r.right + dx, r.bottom + dy };
+            DrawTextA(dc, text, -1, &o, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        }
+    GdiFlush();
+    {
+        /* Keep the outline, then draw the text on its own. */
+        uint8_t *px = (uint8_t *)bits, *shadow = (uint8_t *)malloc((size_t)w * h);
+        if (shadow) {
+            for (int i = 0; i < w * h; i++) shadow[i] = px[i * 4 + 2];
+            memset(bits, 0, (size_t)w * h * 4);
+            SetTextColor(dc, RGB(0, 255, 0));
+            DrawTextA(dc, text, -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            GdiFlush();
+            if (SUCCEEDED(IDirect3DTexture8_LockRect(s_code_tex, 0, &lr, NULL, 0))) {
+                for (int y = 0; y < h; y++) {
+                    uint32_t *row = (uint32_t *)((uint8_t *)lr.pBits + y * lr.Pitch);
+                    for (int x = 0; x < w; x++) {
+                        int i = y * w + x;
+                        float t = px[i * 4 + 1] / 255.0f, s = shadow[i] / 255.0f * 0.75f;
+                        float a = t + s * (1.0f - t);
+                        uint32_t c = a > 0.0f ? (uint32_t)(t / a * 255.0f + 0.5f) : 0;
+                        row[x] = ((uint32_t)(a * 255.0f + 0.5f) << 24) | (c << 16) | (c << 8) | c;
+                    }
+                }
+                IDirect3DTexture8_UnlockRect(s_code_tex, 0);
+                ok = 1;
+            }
+            free(shadow);
+        }
+    }
+    DeleteObject(font);
+    DeleteObject(bmp);
+    DeleteDC(dc);
+    return ok;
+}
+
+static void code_overlay(void)
+{
+    const char *code = cw_net_join_code();
+    char text[48];
+    int w = (int)(640.0f * s_hs + 0.5f), h = (int)(CODE_BAND_H * s_hs + 0.5f);
+    float x0, y0;
+
+    if (!code || !code[0] || MEM8(0x005A71CCu))
+        return;
+    snprintf(text, sizeof text, "JOIN CODE: %s", code);
+    if (!s_code_tex || w != s_code_w || h != s_code_h) {
+        if (s_code_tex) { IDirect3DTexture8_Release(s_code_tex); s_code_tex = NULL; }
+        if (FAILED(IDirect3DDevice8_CreateTexture(s_dev, (UINT)w, (UINT)h, 1, 0, D3DFMT_A8R8G8B8,
+                                                  D3DPOOL_MANAGED, &s_code_tex)))
+            return;
+        s_code_w = w; s_code_h = h;
+        s_code_text[0] = 0;
+    }
+    if (strcmp(text, s_code_text)) {
+        if (!code_raster(text, w, h)) return;
+        snprintf(s_code_text, sizeof s_code_text, "%s", text);
+    }
+    if (!s_code_sb && FAILED(IDirect3DDevice8_CreateStateBlock(s_dev, D3DSBT_ALL, &s_code_sb)))
+        return;
+    IDirect3DDevice8_CaptureStateBlock(s_dev, s_code_sb);
+    x0 = s_hx0;
+    y0 = s_hy0 + CODE_BAND_TOP * s_hs;
+    IDirect3DDevice8_BeginScene(s_dev);
+    ovl_quad_prepare(s_code_tex);
+    IDirect3DDevice8_SetRenderState(s_dev, D3DRS_ALPHABLENDENABLE, TRUE);
+    IDirect3DDevice8_SetRenderState(s_dev, D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    IDirect3DDevice8_SetRenderState(s_dev, D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    IDirect3DDevice8_SetTextureStageState(s_dev, 0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+    IDirect3DDevice8_SetTextureStageState(s_dev, 0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+    IDirect3DDevice8_SetTextureStageState(s_dev, 0, D3DTSS_MAGFILTER, D3DTEXF_POINT);
+    IDirect3DDevice8_SetTextureStageState(s_dev, 0, D3DTSS_MINFILTER, D3DTEXF_POINT);
+    ovl_quad_draw(x0, y0, x0 + (float)w, y0 + (float)h);
+    IDirect3DDevice8_EndScene(s_dev);
+    IDirect3DDevice8_ApplyStateBlock(s_dev, s_code_sb);
 }
 
 static void m_update_overlay(const uint32_t *a)
