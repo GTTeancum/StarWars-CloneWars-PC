@@ -56,6 +56,7 @@
 #include <windows.h>
 #include <bcrypt.h>
 #include <stdarg.h>
+#include <share.h>
 
 #include "recomp/gen/recomp_types.h"
 #include "recomp/gen/recomp_funcs.h"
@@ -146,6 +147,112 @@ static uint32_t tx_buf_va(uint32_t p)
     return memcmp((const void *)XBOX_PTR(p + 6), me, 6) == 0 ? p : p + CONTIG_BASE;
 }
 
+/* ---- online.log ----------------------------------------------------------
+ *
+ * Every network event, timestamped, in online.log next to the game -- always
+ * on, so a player whose join failed has something to attach to a report. The
+ * previous run's log is kept as online.old.log. Public IP addresses are
+ * written as their first two parts only (68.38.*.*): logs get posted in
+ * public issues. That is still enough to tell whether a joiner found the
+ * host's network. */
+#define CW_VERSION "0.9.1b"
+
+static FILE *s_olog;
+static SRWLOCK s_olog_lock = SRWLOCK_INIT;
+
+static void olog_open(void)
+{
+    char path[MAX_PATH], old[MAX_PATH], *slash;
+    SYSTEMTIME st;
+    OSVERSIONINFOW ov = { sizeof ov };
+    typedef LONG (WINAPI *rtl_get_version)(OSVERSIONINFOW *);
+    rtl_get_version rgv;
+
+    if (!GetModuleFileNameA(NULL, path, sizeof path)) return;
+    if ((slash = strrchr(path, '\\')) == NULL) return;
+    /* A second copy on the same PC (System Link testing) finds online.log
+     * held open and writes online-2.log. */
+    for (int k = 1; k <= 4 && !s_olog; k++) {
+        const char *sfx = k == 1 ? "" : k == 2 ? "-2" : k == 3 ? "-3" : "-4";
+        snprintf(slash + 1, sizeof path - (size_t)(slash + 1 - path), "online%s.log", sfx);
+        snprintf(old, sizeof old, "%.*sonline%s.old.log", (int)(slash + 1 - path), path, sfx);
+        if (MoveFileExA(path, old, MOVEFILE_REPLACE_EXISTING) ||
+            GetLastError() == ERROR_FILE_NOT_FOUND)
+            s_olog = _fsopen(path, "w", _SH_DENYWR);
+    }
+    if (!s_olog) return;
+    GetLocalTime(&st);
+    rgv = (rtl_get_version)GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetVersion");
+    if (rgv) rgv(&ov);
+    fprintf(s_olog, "Star Wars: The Clone Wars PC %s -- online log, %04u-%02u-%02u\n"
+            "Windows %lu.%lu build %lu\n\n", CW_VERSION, st.wYear, st.wMonth, st.wDay,
+            ov.dwMajorVersion, ov.dwMinorVersion, ov.dwBuildNumber);
+    fflush(s_olog);
+}
+
+static void net_log(const char *fmt, ...)
+{
+    char line[512];
+    SYSTEMTIME st;
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(line, sizeof line, fmt, ap);
+    va_end(ap);
+    fprintf(stderr, "[NET] %s\n", line);
+    AcquireSRWLockExclusive(&s_olog_lock);
+    if (s_olog) {
+        GetLocalTime(&st);
+        fprintf(s_olog, "%02u:%02u:%02u.%03u  %s\n", st.wHour, st.wMinute, st.wSecond,
+                st.wMilliseconds, line);
+        fflush(s_olog);
+    }
+    ReleaseSRWLockExclusive(&s_olog_lock);
+}
+
+/* An address for the log: private, loopback and broadcast in full, public
+ * ones as their first two parts. Two buffers, so a line can show two. */
+static const char *addr_str(const struct sockaddr_in *a)
+{
+    static __declspec(thread) char buf[2][40];
+    static __declspec(thread) int k;
+    const uint8_t *b = (const uint8_t *)&a->sin_addr;
+    char *o = buf[k++ & 1];
+    int priv = b[0] == 10 || b[0] == 127 || (b[0] == 172 && (b[1] & 0xF0) == 16) ||
+               (b[0] == 192 && b[1] == 168) || (b[0] == 169 && b[1] == 254) ||
+               (b[0] == 100 && (b[1] & 0xC0) == 64) || a->sin_addr.s_addr == INADDR_BROADCAST;
+    if (priv)
+        snprintf(o, 40, "%u.%u.%u.%u:%u", b[0], b[1], b[2], b[3], ntohs(a->sin_port));
+    else
+        snprintf(o, 40, "%u.%u.*.*:%u", b[0], b[1], ntohs(a->sin_port));
+    return o;
+}
+
+/* Traffic while connected, summarised once a minute. */
+static volatile LONG s_frames_in, s_frames_out, s_bytes_in, s_bytes_out;
+
+static void log_traffic(void)
+{
+    LONG fi = InterlockedExchange(&s_frames_in, 0), fo = InterlockedExchange(&s_frames_out, 0);
+    LONG bi = InterlockedExchange(&s_bytes_in, 0), bo = InterlockedExchange(&s_bytes_out, 0);
+    net_log("last minute: %ld frames in (%ld KB), %ld out (%ld KB)", fi, bi / 1024, fo, bo / 1024);
+}
+
+static void log_dht(const char *what)
+{
+    dht_stats d;
+    dht_last_stats(&d);
+    if (d.announced)
+        net_log("%s: %d routers, %d nodes asked, %d answered, %d listed us, %d addresses found, %d ms",
+                what, d.routers, d.asked, d.answered, d.announced, d.peers, d.ms);
+    else
+        net_log("%s: %d routers, %d nodes asked, %d answered, %d addresses found, %d ms",
+                what, d.routers, d.asked, d.answered, d.peers, d.ms);
+    if (!d.routers)
+        net_log("  no DHT routers resolved: no internet, or DNS blocked");
+    else if (!d.answered)
+        net_log("  no DHT node answered: outgoing UDP is probably blocked (firewall?)");
+}
+
 static FILE *s_pcap;
 
 static void log_frame(const char *dir, const uint8_t *f, unsigned len)
@@ -174,6 +281,10 @@ static void send_to(const struct sockaddr_in *to, int type, const uint8_t *f, un
     uint8_t pkt[4 + MAX_FRAME];
     pkt[0] = 'C'; pkt[1] = 'W'; pkt[2] = PKT_VERSION; pkt[3] = (uint8_t)type;
     if (len) memcpy(pkt + 4, f, len);
+    if (type == PKT_FRAME) {
+        InterlockedIncrement(&s_frames_out);
+        InterlockedExchangeAdd(&s_bytes_out, (LONG)len);
+    }
     sendto(s_sock, (const char *)pkt, (int)(4 + len), 0,
            (const struct sockaddr *)to, sizeof *to);
 }
@@ -239,8 +350,7 @@ static int peer_index(const struct sockaddr_in *a)
         return -1;
     memset(&s_peers[s_npeers], 0, sizeof s_peers[0]);
     s_peers[s_npeers].addr = *a;
-    fprintf(stderr, "[NET] player at %s:%u joined\n",
-            inet_ntoa(a->sin_addr), ntohs(a->sin_port));
+    net_log("player at %s joined (%d connected)", addr_str(a), s_npeers + 1);
     return s_npeers++;
 }
 
@@ -287,7 +397,12 @@ static void notice(const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(text, 512, fmt, ap);
     va_end(ap);
-    fprintf(stderr, "[NET] %s\n", text);
+    {
+        char flat[512], *c;
+        snprintf(flat, sizeof flat, "%s", text);
+        for (c = flat; *c; c++) if (*c == '\n') *c = ' ';
+        net_log("message shown: %s", flat);
+    }
     CloseHandle(CreateThread(NULL, 0, notice_thread, text, 0, NULL));
 }
 
@@ -378,7 +493,7 @@ static int ask_code(char *code, size_t n)
         INT_PTR r = DialogBoxIndirectParamA(GetModuleHandleA(NULL), t, NULL, code_dlg, 0);
         if (r != IDOK) {
             if (r < 0)
-                fprintf(stderr, "[NET] the join-code box failed to open (error %lu)\n", GetLastError());
+                net_log("the join-code box failed to open (error %lu)", GetLastError());
             return 0;
         }
     }
@@ -410,8 +525,9 @@ static DWORD WINAPI host_thread(LPVOID genp)
     LONG gen = (LONG)(LONG_PTR)genp;
     uint8_t ih[20], jh[20];
     struct sockaddr_in found[DHT_MAX_PEERS];
-    DWORD last_announce = 0;
-    int announces = 0;
+    DWORD last_announce = 0, last_traffic = GetTickCount(), last_listed = 0;
+    int announces = 0, nknock = 0, nlisted = 0;
+    struct sockaddr_in knocked[DHT_MAX_PEERS];
     dht_code_hash(s_code, 0, ih);
     dht_code_hash(s_code, 1, jh);
     while (s_host_gen == gen) {
@@ -422,7 +538,7 @@ static DWORD WINAPI host_thread(LPVOID genp)
             announces++;
             dht_lookup(ih, 1, s_port, NULL, 0, 6000);
             last_announce = GetTickCount();
-            fprintf(stderr, "[NET] code %s is listed\n", s_code);
+            log_dht(announces == 1 ? "listing the code" : "listing the code again");
         }
         /* Joiners list themselves under the code's join entry. Sending to
          * them first is what opens this side's router to them. */
@@ -431,18 +547,38 @@ static DWORD WINAPI host_thread(LPVOID genp)
         EnterCriticalSection(&s_lock);
         for (int i = 0; i < s_npeers; ) {
             if (GetTickCount() - s_peers[i].seen > 15000) {
-                fprintf(stderr, "[NET] player at %s:%u left\n",
-                        inet_ntoa(s_peers[i].addr.sin_addr), ntohs(s_peers[i].addr.sin_port));
+                net_log("player at %s left: nothing heard for 15 s (%d still connected)",
+                        addr_str(&s_peers[i].addr), s_npeers - 1);
                 s_peers[i] = s_peers[--s_npeers];
             } else {
                 i++;
             }
         }
         LeaveCriticalSection(&s_lock);
-        int n = dht_lookup(jh, 0, 0, found, DHT_MAX_PEERS, 4000);
-        for (int i = 0; i < n; i++)
+        /* The DHT also returns strangers' addresses here (nodes far from the
+         * hash answer with unrelated peers), so the log only counts them; a
+         * real joiner shows up as "player ... joined". */
+        int n = dht_lookup(jh, 0, 0, found, DHT_MAX_PEERS, 4000), fresh = 0;
+        for (int i = 0; i < n; i++) {
+            int known = 0;
+            for (int k = 0; k < nknock; k++)
+                if (same_addr(&knocked[k], &found[i])) known = 1;
+            if (!known && nknock < DHT_MAX_PEERS) {
+                fresh++;
+                knocked[nknock++] = found[i];
+            }
             for (int k = 0; k < 3; k++)
                 send_to(&found[i], PKT_HELLO, NULL, 0);
+        }
+        nlisted += fresh;
+        if (fresh && (!last_listed || GetTickCount() - last_listed > 60000)) {
+            net_log("join entry: %d addresses listed so far, sending to each (most are strangers)", nlisted);
+            last_listed = GetTickCount();
+        }
+        if (s_npeers && GetTickCount() - last_traffic > 60000) {
+            log_traffic();
+            last_traffic = GetTickCount();
+        }
         Sleep(3000);
     }
     return 0;
@@ -463,7 +599,9 @@ static void start_hosting(void)
     set_title(msg);
     copy_to_clipboard(shown);
     snprintf(s_code_shown, sizeof s_code_shown, "%s", shown);
-    fprintf(stderr, "[NET] your join code is %s\n", shown);
+    net_log("hosting: join code %s, UDP port %u", shown, s_port);
+    if (s_port != 34100)
+        net_log("  port 34100 was taken (another copy running?); joiners may not reach this one");
 }
 
 /* The code as the menus show it (src/platform/d3d8.c draws it below the UI),
@@ -501,11 +639,13 @@ static DWORD WINAPI lookup_thread(LPVOID unused)
     for (int round = 0; round < 6 && s_mode == 2 && !s_npeers; round++) {
         if (round % 2 == 0)
             dht_lookup(jh, 1, s_port, NULL, 0, 6000);    /* so the host can find us */
+        if (round % 2 == 0)
+            log_dht("listing this joiner");
         int n = dht_lookup(ih, 0, 0, found, DHT_MAX_PEERS, 8000);
+        log_dht("looking up the code");
         for (int i = 0; i < n; i++) {
             struct sockaddr_in a = found[i];
-            fprintf(stderr, "[NET] code %s is listed at %s:%u\n", s_join_code,
-                    inet_ntoa(a.sin_addr), ntohs(a.sin_port));
+            net_log("  the code is listed at %s", addr_str(&a));
             InterlockedIncrement(&s_listed);
             cand_add(&a);
             /* Some DHT nodes record the port wrongly (implied_port read as
@@ -524,7 +664,7 @@ static DWORD WINAPI join_thread(LPVOID unused)
     (void)unused;
 
     if (!ask_code(code, sizeof code)) {
-        fprintf(stderr, "[NET] no join code entered; searching this network only\n");
+        net_log("search: no join code entered; searching this network only");
         s_asking = 0;
         return 0;
     }
@@ -533,7 +673,7 @@ static DWORD WINAPI join_thread(LPVOID unused)
         s_asking = 0;
         return 0;
     }
-    fprintf(stderr, "[NET] looking up join code %s\n", code);
+    net_log("search: looking up join code %.4s-%s", code, code + 4);
     snprintf(s_join_code, sizeof s_join_code, "%s", code);
     set_title("Looking up the code...");
     s_ncand = 0;
@@ -552,23 +692,55 @@ static DWORD WINAPI join_thread(LPVOID unused)
     }
     s_mode = 2;
     CloseHandle(CreateThread(NULL, 0, lookup_thread, NULL, 0, NULL));
-    for (int t = 0; t < 300 && !s_npeers; t++) {          /* a minute */
-        for (int i = 0; i < s_ncand; i++)
-            send_to(&s_cand[i], PKT_HELLO, (const uint8_t *)code, 7);
-        Sleep(200);
+    {
+        LONG logged = 0;
+        DWORD t0 = GetTickCount();
+        for (int t = 0; t < 300 && !s_npeers; t++) {      /* a minute */
+            for (int i = 0; i < s_ncand; i++)
+                send_to(&s_cand[i], PKT_HELLO, (const uint8_t *)code, 7);
+            for (; logged < s_ncand; logged++)
+                net_log("  trying the host at %s", addr_str(&s_cand[logged]));
+            Sleep(200);
+        }
+        if (s_npeers)
+            net_log("the host answered after %lu s", (GetTickCount() - t0) / 1000);
+        else
+            net_log("gave up after %lu s: %ld addresses tried, %s", (GetTickCount() - t0) / 1000,
+                    s_ncand, !s_listed ? "nothing listed under the code in the DHT"
+                                       : "none answered (DHT listings can be strangers, so the "
+                                         "host may not be among them)");
     }
     if (!s_npeers) {
         s_mode = 0;
         set_title(NULL);
-        notice(!s_listed ? "No game found for code %s. Check the code with your friend."
-                         : "Found the game for code %s but couldn't connect to it.", code);
+        /* A listing alone proves nothing (strangers turn up under any code),
+         * so the message does not claim the game was found. */
+        notice("Couldn't connect to a game with code %.4s-%s.\n\n"
+               "Check the code with your friend, and that their game is still in the lobby. "
+               "If the code is right, the host can forward UDP port 34100 on their router "
+               "and you can try again.", code, code + 4);
         s_asking = 0;
         return 0;
     }
     set_title("Connected");
-    while (s_mode == 2) {                                 /* keeps the router's mapping open */
-        send_to(&s_peers[0].addr, PKT_HELLO, (const uint8_t *)code, 7);
-        Sleep(1000);
+    {
+        DWORD last_traffic = GetTickCount();
+        int silent = 0;
+        while (s_mode == 2) {                             /* keeps the router's mapping open */
+            send_to(&s_peers[0].addr, PKT_HELLO, (const uint8_t *)code, 7);
+            if (GetTickCount() - last_traffic > 60000) {
+                log_traffic();
+                last_traffic = GetTickCount();
+            }
+            if (!silent && GetTickCount() - s_peers[0].seen > 15000) {
+                net_log("nothing heard from the host for 15 s");
+                silent = 1;
+            } else if (silent && GetTickCount() - s_peers[0].seen < 2000) {
+                net_log("the host is answering again");
+                silent = 0;
+            }
+            Sleep(1000);
+        }
     }
     return 0;
 }
@@ -594,11 +766,26 @@ static DWORD WINAPI recv_thread(LPVOID unused)
             dht_on_packet(pkt, n, &from);
             continue;
         }
-        if (n < 4 || pkt[0] != 'C' || pkt[1] != 'W' || pkt[2] != PKT_VERSION)
+        if (n >= 4 && pkt[0] == 'C' && pkt[1] == 'W' && pkt[2] != PKT_VERSION) {
+            static int said;
+            if (!said++)
+                net_log("%s runs a different version of the game; ignored", addr_str(&from));
             continue;
+        }
+        if (n < 4 || pkt[0] != 'C' || pkt[1] != 'W')
+            continue;
+        if (pkt[3] == PKT_FRAME) {
+            InterlockedIncrement(&s_frames_in);
+            InterlockedExchangeAdd(&s_bytes_in, n - 4);
+        }
         if (s_mode == 1) {
             EnterCriticalSection(&s_lock);
             int p = -1;
+            if (pkt[3] == PKT_HELLO && !code_matches(pkt + 4, n - 4, s_code)) {
+                static int said;
+                if (!said++)
+                    net_log("%s asked to join with a different code; ignored", addr_str(&from));
+            }
             if (pkt[3] == PKT_HELLO && code_matches(pkt + 4, n - 4, s_code)) {
                 p = peer_index(&from);
                 if (p >= 0) s_peers[p].seen = GetTickCount();
@@ -616,12 +803,13 @@ static DWORD WINAPI recv_thread(LPVOID unused)
         } else if (s_mode == 2) {
             if (pkt[3] == PKT_WELCOME && !s_npeers && code_matches(pkt + 4, n - 4, s_join_code)) {
                 s_peers[0].addr = from;
+                s_peers[0].seen = GetTickCount();
                 s_npeers = 1;
-                fprintf(stderr, "[NET] connected to the host at %s:%u\n",
-                        inet_ntoa(from.sin_addr), ntohs(from.sin_port));
-            } else if (pkt[3] == PKT_FRAME && n >= 4 + 14 && s_npeers &&
-                       same_addr(&from, &s_peers[0].addr)) {
-                rxq_push(pkt + 4, (unsigned)(n - 4));
+                net_log("connected to the host at %s", addr_str(&from));
+            } else if (s_npeers && same_addr(&from, &s_peers[0].addr)) {
+                s_peers[0].seen = GetTickCount();
+                if (pkt[3] == PKT_FRAME && n >= 4 + 14)
+                    rxq_push(pkt + 4, (unsigned)(n - 4));
             }
         }
     }
@@ -654,7 +842,8 @@ static void net_start(void)
 
     if (started) return;
     started = 1;
-    if (getenv("CW_NET_OFF")) return;
+    olog_open();
+    if (getenv("CW_NET_OFF")) { net_log("network play off (CW_NET_OFF)"); return; }
     s_log = getenv("CW_NET_LOG") != NULL;
     if (getenv("CW_NET_PCAP") && (s_pcap = fopen(getenv("CW_NET_PCAP"), "wb")) != NULL) {
         static const uint32_t hdr[6] = { 0xA1B2C3D4u, 0x00040002u, 0, 0, 65535, 1 };
@@ -670,8 +859,7 @@ static void net_start(void)
     if (bind(s_sock, (struct sockaddr *)&me, sizeof me) != 0) {
         me.sin_port = 0;                  /* taken (a second copy on this PC) */
         if (bind(s_sock, (struct sockaddr *)&me, sizeof me) != 0) {
-            fprintf(stderr, "[NET] cannot open a UDP port (error %d); network play off\n",
-                    WSAGetLastError());
+            net_log("cannot open a UDP port (error %d); network play off", WSAGetLastError());
             return;
         }
     }
@@ -683,7 +871,7 @@ static void net_start(void)
     s_ready = 1;
     dht_init(s_sock);
     CloseHandle(CreateThread(NULL, 0, recv_thread, NULL, 0, NULL));
-    fprintf(stderr, "[NET] network play on UDP port %u\n", s_port);
+    net_log("network play on UDP port %u", s_port);
 
     if (getenv("CW_NET_HOST")) {
         s_mode = 1;
@@ -699,7 +887,7 @@ static void net_start(void)
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_DGRAM;
         if (getaddrinfo(host, NULL, &hints, &res) != 0 || !res) {
-            fprintf(stderr, "[NET] cannot resolve %s\n", host);
+            net_log("cannot resolve %s", host);
             return;
         }
         a = (struct sockaddr_in *)malloc(sizeof *a);
@@ -806,7 +994,7 @@ static int dhcp_answer(const uint8_t *f, unsigned len)
     *o++ = 255;
     rxq_push(r, sizeof r);
     if (kind == 3)
-        fprintf(stderr, "[NET] this copy's network address 10.47.%u.%u\n", mine[2], mine[3]);
+        net_log("game network address 10.47.%u.%u (inside the game only)", mine[2], mine[3]);
     return 1;
 }
 
@@ -859,7 +1047,7 @@ void cw_net_periodic(void)
     if (tx_ring != s_tx_ring || rx_ring != s_rx_ring) {
         s_tx_ring = tx_ring; s_rx_ring = rx_ring;
         s_tx_i = s_rx_i = 0; s_tx_len = 0;
-        fprintf(stderr, "[NET] chip started: %u send / %u receive slots\n", tx_n, rx_n);
+        net_log("network chip started: %u send / %u receive slots", tx_n, rx_n);
     }
 
     /* Send: take every descriptor the driver has handed over, in order. */

@@ -62,6 +62,14 @@ static struct sockaddr_in s_peers[DHT_MAX_PEERS];
 static int s_npeers;
 static uint16_t s_session;               /* high byte of transaction ids */
 static CRITICAL_SECTION s_busy;
+static dht_stats s_last;                 /* the last lookup, guarded by s_lock */
+
+void dht_last_stats(dht_stats *out)
+{
+    EnterCriticalSection(&s_lock);
+    *out = s_last;
+    LeaveCriticalSection(&s_lock);
+}
 
 void dht_sha1(const void *data, unsigned len, uint8_t out[20])
 {
@@ -291,7 +299,7 @@ int dht_lookup(const uint8_t hash[20], int announce, unsigned short port,
                struct sockaddr_in *peers, int max_peers, int timeout_ms)
 {
     DWORD start = GetTickCount();
-    int found, idle_rounds = 0;
+    int found, idle_rounds = 0, routers = 0;
     /* Runs to convergence even once something is found: nodes far from the
      * hash sometimes answer with unrelated peers, and the real entry sits
      * with the nodes closest to it. */
@@ -313,6 +321,7 @@ int dht_lookup(const uint8_t hash[20], int announce, unsigned short port,
         for (it = res; it; it = it->ai_next) {
             struct sockaddr_in a = *(struct sockaddr_in *)it->ai_addr;
             a.sin_port = htons(BOOTSTRAP_PORT[i]);
+            routers++;
             EnterCriticalSection(&s_lock);
             add_node(NULL, &a);
             LeaveCriticalSection(&s_lock);
@@ -356,12 +365,22 @@ int dht_lookup(const uint8_t hash[20], int announce, unsigned short port,
     }
 
     EnterCriticalSection(&s_lock);
+    memset(&s_last, 0, sizeof s_last);
     if (announce) {
         int top[K_CLOSEST], nt = closest_answered(top, K_CLOSEST);
         for (int i = 0; i < nt; i++)
-            if (s_nodes[top[i]].token_len)
+            if (s_nodes[top[i]].token_len) {
                 send_query(top[i], 1, port);
+                s_last.announced++;
+            }
     }
+    for (int i = 0; i < s_nnodes; i++) {
+        s_last.asked += s_nodes[i].queried;
+        s_last.answered += s_nodes[i].answered;
+    }
+    s_last.routers = routers;
+    s_last.peers = s_npeers;
+    s_last.ms = (int)(GetTickCount() - start);
     found = s_npeers < max_peers ? s_npeers : max_peers;
     if (peers) memcpy(peers, s_peers, sizeof(struct sockaddr_in) * found);
     LeaveCriticalSection(&s_lock);

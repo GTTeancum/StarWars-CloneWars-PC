@@ -103,6 +103,13 @@ the host can forward **UDP port 34100** on their router to their PC and try
 again. Please report what happened: both players' internet type (home
 broadband, mobile hotspot, etc.), and whether the joiner found the lobby.
 
+**Attach both players' `online.log`** to the report. The game writes it next
+to `CloneWars32.exe` every time it runs (the run before is kept as
+`online.old.log`, so send that one if the game has been restarted since). It
+records each step of hosting and joining with the time, and contains no
+personal details: internet addresses are cut to their first half
+(`68.38.*.*`).
+
 ## Status
 
 Single player is playable, and all 40 maps (campaign, split-screen and the
