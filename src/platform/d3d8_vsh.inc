@@ -601,7 +601,7 @@ static int vsh_translate(vsh_rec *r, vsh_out *o, int clamp)
         memset(&c, 0, sizeof c);
         c.mux = MUX_C; c.reg = 96;                 /* PC c0 */
         c.swz[0] = 0; c.swz[1] = 1; c.swz[2] = 2; c.swz[3] = 3;
-        for (d = 0; d < 2 && !getenv("CW_VSH_NODEFAULTS"); d++) {
+        for (d = 0; d < 2 && !env_cached("CW_VSH_NODEFAULTS"); d++) {
             vdst rgb = { PC_SPR_ATTROUT, d, 0x7 }, a = { PC_SPR_ATTROUT, d, 0x8 };
             vsrc two[2]; two[0] = c; two[1] = c;
             emit_op(o, D3DSIO_SLT, rgb, two, 2);
@@ -707,7 +707,7 @@ static int vsh_translate(vsh_rec *r, vsh_out *o, int clamp)
      * own camera otherwise, and these five instructions pushed the longest
      * programs past vs.1.1's 128-instruction limit -- the hailfire droids'
      * program then failed to build and its draws were skipped. */
-    r->hor_c = getenv("CW_WIDE_RENDER") ? s_hor_c : -2;
+    r->hor_c = env_cached("CW_WIDE_RENDER") ? s_hor_c : -2;
     if (r->hor_c == -1 || clamp) {
         /* The PC device has only the 96 constants the program's own map to:
          * take the highest one this program never reads (anything at or above

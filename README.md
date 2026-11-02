@@ -24,10 +24,10 @@ images both work. European (PAL) and other versions are not supported; the
 game checks your image on first start and tells you if it is a different
 version.
 
-1. Download `CloneWars32.exe` from the
-   [Releases](https://github.com/GTTeancum/StarWars-CloneWars-PC/releases) page.
-2. Put it in an empty folder together with your disc image (`.iso` or
-   `.xiso`).
+1. Download `CloneWars-PC.zip` from the
+   [Releases](https://github.com/GTTeancum/StarWars-CloneWars-PC/releases) page
+   and unzip it into an empty folder.
+2. Put your disc image (`.iso` or `.xiso`) in the same folder.
 3. Double-click `CloneWars32.exe`.
 
 The first start unpacks the disc image into that folder (about 1.5 GB) and
@@ -44,6 +44,8 @@ be deleted. Nothing needs to be installed: Windows 10 or 11 is enough.
 - FXAA anti-aliasing
 - Locked 60 fps, matching the original's frame pacing
 - Xbox controller support, plus keyboard
+- Online play with a friend by join code (System Link over the internet; in
+  testing, see below)
 
 | | |
 |---|---|
@@ -74,6 +76,33 @@ Z/X/C/V = A/B/X/Y, Q/E = triggers.
 
 Saves are stored in `%LOCALAPPDATA%\CloneWarsRecomp`.
 
+## Online play (testing)
+
+The game's System Link mode works over the internet. A friend joins with a
+short code; there is no server, account or extra app. (The code is listed in
+the public BitTorrent network, which only tells your friend's copy where to
+find yours. The game itself goes directly between the two PCs.)
+
+**Hosting:**
+1. Main menu: **Network Play** → **System Link** → **Create**.
+2. Your code appears in white at the bottom of the screen, for example
+   `JOIN CODE: ABCD-EFG` (also in the window title, and copied to the
+   clipboard). Send it to your friend.
+3. When they show up in the lobby, choose **Launch**.
+
+**Joining:**
+1. Main menu: **Network Play** → **System Link** → **Search**.
+2. A box asks for the code. Type it (with or without the dash) and press
+   **Join**. You land in the host's lobby.
+
+The first time, Windows Firewall asks whether to allow the game on networks:
+allow it, on both PCs. Both players need the same version of the game.
+
+This is new and has been tested on one PC only. If a join does not connect,
+the host can forward **UDP port 34100** on their router to their PC and try
+again. Please report what happened: both players' internet type (home
+broadband, mobile hotspot, etc.), and whether the joiner found the lobby.
+
 ## Status
 
 Single player is playable, and all 40 maps (campaign, split-screen and the
@@ -82,9 +111,8 @@ Known gaps:
 
 - Pre-baked terrain sun shadows are not drawn yet.
 - A few pixel shaders fall back to a simplified version.
-- Split-screen runs but has had little play-testing; the right edge of each
-  player's HUD is slightly cut off.
-- Online and system-link play are not supported.
+- Split-screen runs but has had little play-testing.
+- Online play is new and untested between two separate homes.
 
 ## Building
 

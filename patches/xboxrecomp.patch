@@ -35,10 +35,19 @@ index 2742fa2..e0902f5 100644
      /* What the title actually asks the APU for. The DSPs are stubbed here, so
       * a title that waits on one waits forever, and the only way to work out
 diff --git a/src/kernel/kernel.h b/src/kernel/kernel.h
-index c53b3d4..4be39b0 100644
+index c53b3d4..380e993 100644
 --- a/src/kernel/kernel.h
 +++ b/src/kernel/kernel.h
-@@ -947,6 +947,10 @@ NTSTATUS __stdcall xbox_ExSaveNonVolatileSetting(ULONG ValueIndex, ULONG Type, P
+@@ -766,6 +766,8 @@ BOOLEAN __stdcall xbox_HalIsResetOrShutdownPending(void);
+ KIRQL   __fastcall xbox_KfRaiseIrql(KIRQL NewIrql);
+ VOID    __fastcall xbox_KfLowerIrql(KIRQL NewIrql);
+ KIRQL   __stdcall xbox_KeRaiseIrqlToDpcLevel(void);
++KIRQL   xbox_EnterDispatchLevel(void);
++void    xbox_LeaveDispatchLevel(KIRQL old);
+ 
+ VOID    __stdcall xbox_KeStallExecutionProcessor(ULONG MicroSeconds);
+ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceCounter(void);
+@@ -947,6 +949,10 @@ NTSTATUS __stdcall xbox_ExSaveNonVolatileSetting(ULONG ValueIndex, ULONG Type, P
  #define AV_OPTION_FLICKER_FILTER        0x0B
  #define AV_OPTION_ZERO_MODE             0x0D
  #define AV_OPTION_QUERY_MODE_CAPS       0x0E
@@ -50,7 +59,7 @@ index c53b3d4..4be39b0 100644
  /* ---- AV flags (for capabilities / display mode) ---- */
  #define AV_FLAGS_HDTV_480i      0x00000001
 diff --git a/src/kernel/kernel_bridge.c b/src/kernel/kernel_bridge.c
-index eb25c6c..f0001f5 100644
+index eb25c6c..17cc3aa 100644
 --- a/src/kernel/kernel_bridge.c
 +++ b/src/kernel/kernel_bridge.c
 @@ -29,6 +29,8 @@
@@ -204,7 +213,20 @@ index eb25c6c..f0001f5 100644
      if (count_ptr) BRIDGE_MEM32(count_ptr) = 0;
      g_eax = 0;
  }
-@@ -1971,22 +2036,50 @@ static int kernel_raise_interrupt(uint32_t vector)
+@@ -1807,7 +1872,11 @@ static int kernel_run_dpc(uint32_t dpc_va, uint32_t arg1, uint32_t arg2)
+     g_esp -= 4; BRIDGE_MEM32(g_esp) = context;
+     g_esp -= 4; BRIDGE_MEM32(g_esp) = dpc_va;
+     g_esp -= 4; BRIDGE_MEM32(g_esp) = 0;
+-    fn();
++    {
++        KIRQL old = xbox_EnterDispatchLevel();   /* see kernel_hal.c */
++        fn();
++        xbox_LeaveDispatchLevel(old);
++    }
+     return 1;
+ }
+ 
+@@ -1971,22 +2040,50 @@ static int kernel_raise_interrupt(uint32_t vector)
  #define NV2A_PCRTC_INTR_0      0x00600100u
  #define NV2A_PCRTC_INTR_VBLANK (1u << 0)
  #define NV2A_VECTOR            3u
@@ -261,7 +283,7 @@ index eb25c6c..f0001f5 100644
  
      if (!xbox_GetConnectedInterrupt(NV2A_VECTOR))
          return;
-@@ -2002,6 +2095,18 @@ static void kernel_vblank_tick(void)
+@@ -2002,6 +2099,18 @@ static void kernel_vblank_tick(void)
                      claimed < 0 ? "not callable" :
                      claimed ? "claimed it" : "declined it");
          fflush(stderr);
@@ -280,7 +302,7 @@ index eb25c6c..f0001f5 100644
      }
  }
  
-@@ -2014,6 +2119,7 @@ static void kernel_drain_dpcs(void)
+@@ -2014,6 +2123,7 @@ static void kernel_drain_dpcs(void)
          PendingDpc d = g_dpc_queue[head];
          g_dpc_head = (head + 1) % XBOX_MAX_PENDING_DPC;
          kernel_run_dpc(d.dpc, d.arg1, d.arg2);
@@ -288,7 +310,7 @@ index eb25c6c..f0001f5 100644
      }
  }
  
-@@ -2043,17 +2149,16 @@ static void bridge_KeInitializeDpc(void)
+@@ -2043,17 +2153,16 @@ static void bridge_KeInitializeDpc(void)
  /* ── NV2A interrupt plumbing (ordinals 44, 98, 109) ───────
   *
   * The D3D8 library linked into a title installs an ISR for the GPU's vblank /
@@ -311,7 +333,7 @@ index eb25c6c..f0001f5 100644
   */
  
  /* ULONG HalGetInterruptVector(ULONG BusInterruptLevel, PKIRQL Irql) */
-@@ -2235,11 +2340,45 @@ static XboxTimer g_timers[XBOX_MAX_TIMERS];
+@@ -2235,11 +2344,45 @@ static XboxTimer g_timers[XBOX_MAX_TIMERS];
  static CRITICAL_SECTION g_timer_lock;
  static int g_timer_started;
  
@@ -357,7 +379,7 @@ index eb25c6c..f0001f5 100644
      if (slot < 0) {
          fprintf(stderr, "  [KERNEL] timer thread has no worker stack; "
                          "timer DPCs will not run\n");
-@@ -2266,9 +2405,16 @@ static DWORD WINAPI kernel_timer_thread(LPVOID unused)
+@@ -2266,9 +2409,16 @@ static DWORD WINAPI kernel_timer_thread(LPVOID unused)
          long long now;
          int i;
  
@@ -375,7 +397,7 @@ index eb25c6c..f0001f5 100644
          now = (long long)GetTickCount64();
  
          for (i = 0; i < XBOX_MAX_TIMERS; i++) {
-@@ -2384,7 +2530,9 @@ static void bridge_ExQueryPoolBlockSize(void)
+@@ -2384,7 +2534,9 @@ static void bridge_ExQueryPoolBlockSize(void)
       * answer. It used to return a literal 0 on the theory that this is only
       * ever used for stats -- which is a guess about the caller, and a title
       * that sizes a copy from it copies nothing. */
@@ -386,7 +408,7 @@ index eb25c6c..f0001f5 100644
  }
  
  /* ── RtlNtStatusToDosError (ordinal 301) ─────────────────
-@@ -2728,13 +2876,18 @@ static void bridge_NtCreateFile(void)
+@@ -2728,13 +2880,18 @@ static void bridge_NtCreateFile(void)
          extern uint32_t xbox_LastFileError(void);
          uint32_t _e = g_eax ? xbox_LastFileError() : 0u;
          if (g_eax)
@@ -409,7 +431,7 @@ index eb25c6c..f0001f5 100644
      }
      fflush(stderr);
  }
-@@ -2885,6 +3038,8 @@ static void bridge_XeUnloadSection(void) { bridge_XeSection(0); }
+@@ -2885,6 +3042,8 @@ static void bridge_XeUnloadSection(void) { bridge_XeSection(0); }
  #define XBOX_EXCEPTION_EXIT_UNWIND 0x04u
  #define XBOX_SEH_MAX_FRAMES 64
  
@@ -418,7 +440,7 @@ index eb25c6c..f0001f5 100644
  static void bridge_RtlUnwind(void)
  {
      uint32_t target_frame = STACK_ARG(0);
-@@ -2923,10 +3078,10 @@ static void bridge_RtlUnwind(void)
+@@ -2923,10 +3082,10 @@ static void bridge_RtlUnwind(void)
           * its own frame still on the chain. */
          BRIDGE_MEM32(XBOX_FS_BASE) = next;
  
@@ -433,7 +455,7 @@ index eb25c6c..f0001f5 100644
              if (fn) {
                  /* EXCEPTION_DISPOSITION handler(record, frame, context,
                   * dispatcher) -- cdecl, so the caller pops. */
-@@ -2935,6 +3090,8 @@ static void bridge_RtlUnwind(void)
+@@ -2935,6 +3094,8 @@ static void bridge_RtlUnwind(void)
                  g_esp -= 4; BRIDGE_MEM32(g_esp) = reg;
                  g_esp -= 4; BRIDGE_MEM32(g_esp) = exc_record;
                  g_esp -= 4; BRIDGE_MEM32(g_esp) = 0;  /* return address */
@@ -442,7 +464,7 @@ index eb25c6c..f0001f5 100644
                  fn();
                  /* 16, not 20: the handler's own `ret` has already taken the
                   * return address off, leaving just the four arguments for the
-@@ -2990,14 +3147,19 @@ static void bridge_NtReadFile(void)
+@@ -2990,14 +3151,19 @@ static void bridge_NtReadFile(void)
           * whatever precedes the file it actually wants, and a read that stops
           * early looks identical to one that never started -- until you can
           * see where each one landed. */
@@ -465,7 +487,7 @@ index eb25c6c..f0001f5 100644
                      length, got, (uint32_t)ios.Status,
                      got > 0 ? p[0] : 0, got > 1 ? p[1] : 0,
                      got > 2 ? p[2] : 0, got > 3 ? p[3] : 0);
-@@ -3147,6 +3309,23 @@ static void bridge_NtQueryDirectoryFile(void)
+@@ -3147,6 +3313,23 @@ static void bridge_NtQueryDirectoryFile(void)
      g_eax = (uint32_t)xbox_NtQueryDirectoryFile(handle, NULL, NULL, NULL, &ios,
                  XBOX_TO_NATIVE(info_va), length, (XBOX_FILE_INFORMATION_CLASS)info_class,
                  pfn, (BOOLEAN)restart);
@@ -489,7 +511,7 @@ index eb25c6c..f0001f5 100644
      bridge_write_iostatus(ios_va, ios.Status, (uint32_t)ios.Information);
  }
  
-@@ -3379,6 +3558,251 @@ static void bridge_ObReferenceObjectByHandle(void)
+@@ -3379,6 +3562,251 @@ static void bridge_ObReferenceObjectByHandle(void)
      g_eax = 0;  /* STATUS_SUCCESS */
  }
  
@@ -741,7 +763,7 @@ index eb25c6c..f0001f5 100644
  /* ── RtlRaiseException (ordinal 302) ─────────────────────
   * VOID RtlRaiseException(PEXCEPTION_RECORD ExceptionRecord)
   *
-@@ -3393,9 +3817,80 @@ static void bridge_RtlRaiseException(void)
+@@ -3393,9 +3821,80 @@ static void bridge_RtlRaiseException(void)
  
      static int raise_count = 0;
      raise_count++;
@@ -825,7 +847,7 @@ index eb25c6c..f0001f5 100644
          fflush(stderr);
      }
  
-@@ -3413,6 +3908,18 @@ static void bridge_RtlRaiseException(void)
+@@ -3413,6 +3912,18 @@ static void bridge_RtlRaiseException(void)
          _clearfp();
      }
  
@@ -844,7 +866,7 @@ index eb25c6c..f0001f5 100644
      g_eax = 0;
  }
  
-@@ -3596,6 +4103,19 @@ static void bridge_KeSetBasePriorityThread(void)
+@@ -3596,6 +4107,19 @@ static void bridge_KeSetBasePriorityThread(void)
  /* ── KeStallExecutionProcessor (ordinal 151, 1 arg) */
  static void bridge_KeStallExecutionProcessor(void)
  {
@@ -864,7 +886,7 @@ index eb25c6c..f0001f5 100644
      xbox_KeStallExecutionProcessor(STACK_ARG(0));
      g_eax = 0;
  }
-@@ -8700,9 +9220,24 @@ static void kernel_thunk_dispatch(void)
+@@ -8700,9 +9224,24 @@ static void kernel_thunk_dispatch(void)
          static DWORD last_summary_tick = 0;
          DWORD now = GetTickCount();
          if (last_summary_tick == 0) last_summary_tick = now;
@@ -891,7 +913,7 @@ index eb25c6c..f0001f5 100644
              /* And which ones, ranked. "Latest" names whatever the sample
               * happened to land on; the question behind this line is what a
               * title sitting still is actually asking the kernel for, and
-@@ -9046,3 +9581,22 @@ void xbox_kernel_bridge_init(void)
+@@ -9046,3 +9585,22 @@ void xbox_kernel_bridge_init(void)
              KERNEL_VA_BASE, KERNEL_VA_BASE + (resolved - 1) * 4);
  
  }
@@ -914,8 +936,339 @@ index eb25c6c..f0001f5 100644
 +        return 0;
 +    return SetEvent(h) ? 1 : 0;
 +}
+diff --git a/src/kernel/kernel_crypto.c b/src/kernel/kernel_crypto.c
+index f8a502c..f603fb4 100644
+--- a/src/kernel/kernel_crypto.c
++++ b/src/kernel/kernel_crypto.c
+@@ -351,56 +351,300 @@ BOOLEAN __stdcall xbox_XcVerifyPKCS1Signature(PVOID Hash, PVOID PublicKey, PVOID
+     return TRUE;
+ }
+ 
++/* Result = Base ^ Exponent mod Modulus, all ModulusLength 32-bit words,
++ * least significant word first.
++ *
++ * XNet's System Link key exchange is Diffie-Hellman through this call: each
++ * side raises the group generator to a random secret and later raises the
++ * other's public value to the same secret. A stub that writes nothing leaves
++ * both sides with garbage, XNet drops the exchange, and a joiner never sends
++ * its first packet ("This game session is no longer available").
++ *
++ * Montgomery multiplication; the moduli used (the Oakley groups) are odd.
++ * Returns TRUE as the kernel does. */
++#define MODEXP_MAX_WORDS 64
++
++static void mont_mul(ULONG *r, const ULONG *a, const ULONG *b,
++                     const ULONG *m, ULONG minv, ULONG n)
++{
++    ULONG t[MODEXP_MAX_WORDS + 2];
++    ULONG i, j;
++
++    memset(t, 0, sizeof(ULONG) * (n + 2));
++    for (i = 0; i < n; i++) {
++        unsigned long long c = 0;
++        ULONG u;
++        for (j = 0; j < n; j++) {
++            c += (unsigned long long)t[j] + (unsigned long long)a[j] * b[i];
++            t[j] = (ULONG)c;
++            c >>= 32;
++        }
++        c += t[n];
++        t[n] = (ULONG)c;
++        t[n + 1] = (ULONG)(c >> 32);
++
++        u = t[0] * minv;
++        c = (unsigned long long)t[0] + (unsigned long long)u * m[0];
++        c >>= 32;
++        for (j = 1; j < n; j++) {
++            c += (unsigned long long)t[j] + (unsigned long long)u * m[j];
++            t[j - 1] = (ULONG)c;
++            c >>= 32;
++        }
++        c += t[n];
++        t[n - 1] = (ULONG)c;
++        t[n] = t[n + 1] + (ULONG)(c >> 32);
++    }
++    {   /* t < 2m: subtract m once if t >= m */
++        int ge = t[n] != 0;
++        if (!ge) {
++            ge = 1;
++            for (j = n; j-- > 0;)
++                if (t[j] != m[j]) { ge = t[j] > m[j]; break; }
++        }
++        if (ge) {
++            long long borrow = 0;
++            for (j = 0; j < n; j++) {
++                long long d = (long long)t[j] - m[j] + borrow;
++                t[j] = (ULONG)d;
++                borrow = d >> 32;
++            }
++        }
++    }
++    memcpy(r, t, sizeof(ULONG) * n);
++}
++
++/* x mod m by shift-and-subtract; used once per call to bring R^2 and the
++ * base into range. */
++static void mod_reduce(ULONG *r, const ULONG *x, ULONG xn, const ULONG *m, ULONG n)
++{
++    ULONG acc[MODEXP_MAX_WORDS + 1];
++    long i;
++    ULONG j;
++
++    memset(acc, 0, sizeof(ULONG) * (n + 1));
++    for (i = (long)xn * 32 - 1; i >= 0; i--) {
++        ULONG carry = (x[i / 32] >> (i % 32)) & 1;
++        int ge;
++        for (j = 0; j <= n; j++) {
++            ULONG nc = acc[j] >> 31;
++            acc[j] = (acc[j] << 1) | carry;
++            carry = nc;
++        }
++        ge = acc[n] != 0;
++        if (!ge) {
++            ge = 1;
++            for (j = n; j-- > 0;)
++                if (acc[j] != m[j]) { ge = acc[j] > m[j]; break; }
++        }
++        if (ge) {
++            long long borrow = 0;
++            for (j = 0; j < n; j++) {
++                long long d = (long long)acc[j] - m[j] + borrow;
++                acc[j] = (ULONG)d;
++                borrow = d >> 32;
++            }
++            acc[n] = (ULONG)((long long)acc[n] + borrow);
++        }
++    }
++    memcpy(r, acc, sizeof(ULONG) * n);
++}
++
+ ULONG __stdcall xbox_XcModExp(PULONG Result, PULONG Base, PULONG Exponent, PULONG Modulus, ULONG ModulusLength)
+ {
+-    (void)Result;
+-    (void)Base;
+-    (void)Exponent;
+-    (void)Modulus;
+-    (void)ModulusLength;
+-    xbox_log(XBOX_LOG_WARN, XBOX_LOG_CRYPTO, "XcModExp: stubbed");
+-    return 0;
++    ULONG n = ModulusLength, minv, x, i;
++    ULONG r2[2 * MODEXP_MAX_WORDS + 1], rr[MODEXP_MAX_WORDS], b[MODEXP_MAX_WORDS];
++    ULONG acc[MODEXP_MAX_WORDS], one[MODEXP_MAX_WORDS];
++    long bit;
++
++    if (n == 0 || n > MODEXP_MAX_WORDS || !(Modulus[0] & 1)) {
++        xbox_log(XBOX_LOG_WARN, XBOX_LOG_CRYPTO, "XcModExp: unsupported modulus (%u words)", n);
++        return 0;
++    }
++    /* -m^-1 mod 2^32 by Newton iteration */
++    x = Modulus[0];
++    for (i = 0; i < 5; i++) x *= 2 - Modulus[0] * x;
++    minv = (ULONG)(0u - x);
++
++    memset(r2, 0, sizeof(ULONG) * (2 * n + 1));
++    r2[2 * n] = 1;                                   /* R^2 = 2^(64n) */
++    mod_reduce(rr, r2, 2 * n + 1, Modulus, n);
++    mod_reduce(b, Base, n, Modulus, n);
++    mont_mul(b, b, rr, Modulus, minv, n);            /* base, Montgomery form */
++    memset(one, 0, sizeof(ULONG) * n);
++    one[0] = 1;
++    mont_mul(acc, one, rr, Modulus, minv, n);        /* 1, Montgomery form */
++
++    for (bit = (long)n * 32 - 1; bit >= 0; bit--) {
++        mont_mul(acc, acc, acc, Modulus, minv, n);
++        if ((Exponent[bit / 32] >> (bit % 32)) & 1)
++            mont_mul(acc, acc, b, Modulus, minv, n);
++    }
++    mont_mul(Result, acc, one, Modulus, minv, n);    /* back to normal form */
++    return 1;
+ }
+ 
+ /* ============================================================================
+- * DES / Block Cipher Operations
++ * DES / Triple DES
+  *
+- * Used for EEPROM and hard drive key derivation. Not needed for PC.
++ * XNet encrypts System Link traffic with these once the key exchange is done.
++ * The key table is the caller's buffer (128 bytes for DES and 384 for triple
++ * DES on the console); this keeps the raw key in it and derives the subkeys
++ * per call, which is cheap at packet rates and fits any table size.
++ * CipherSelect 0 = DES, 1 = triple DES (EDE). Operation 1 = encrypt,
++ * 0 = decrypt.
+  * ============================================================================ */
+ 
++static const unsigned char DES_IP[64] = {
++    58,50,42,34,26,18,10,2,60,52,44,36,28,20,12,4,62,54,46,38,30,22,14,6,64,56,48,40,32,24,16,8,
++    57,49,41,33,25,17,9,1,59,51,43,35,27,19,11,3,61,53,45,37,29,21,13,5,63,55,47,39,31,23,15,7 };
++static const unsigned char DES_FP[64] = {
++    40,8,48,16,56,24,64,32,39,7,47,15,55,23,63,31,38,6,46,14,54,22,62,30,37,5,45,13,53,21,61,29,
++    36,4,44,12,52,20,60,28,35,3,43,11,51,19,59,27,34,2,42,10,50,18,58,26,33,1,41,9,49,17,57,25 };
++static const unsigned char DES_E[48] = {
++    32,1,2,3,4,5,4,5,6,7,8,9,8,9,10,11,12,13,12,13,14,15,16,17,
++    16,17,18,19,20,21,20,21,22,23,24,25,24,25,26,27,28,29,28,29,30,31,32,1 };
++static const unsigned char DES_P[32] = {
++    16,7,20,21,29,12,28,17,1,15,23,26,5,18,31,10,2,8,24,14,32,27,3,9,19,13,30,6,22,11,4,25 };
++static const unsigned char DES_PC1[56] = {
++    57,49,41,33,25,17,9,1,58,50,42,34,26,18,10,2,59,51,43,35,27,19,11,3,60,52,44,36,
++    63,55,47,39,31,23,15,7,62,54,46,38,30,22,14,6,61,53,45,37,29,21,13,5,28,20,12,4 };
++static const unsigned char DES_PC2[48] = {
++    14,17,11,24,1,5,3,28,15,6,21,10,23,19,12,4,26,8,16,7,27,20,13,2,
++    41,52,31,37,47,55,30,40,51,45,33,48,44,49,39,56,34,53,46,42,50,36,29,32 };
++static const unsigned char DES_SHIFTS[16] = { 1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1 };
++static const unsigned char DES_S[8][64] = {
++ {14,4,13,1,2,15,11,8,3,10,6,12,5,9,0,7,0,15,7,4,14,2,13,1,10,6,12,11,9,5,3,8,
++  4,1,14,8,13,6,2,11,15,12,9,7,3,10,5,0,15,12,8,2,4,9,1,7,5,11,3,14,10,0,6,13},
++ {15,1,8,14,6,11,3,4,9,7,2,13,12,0,5,10,3,13,4,7,15,2,8,14,12,0,1,10,6,9,11,5,
++  0,14,7,11,10,4,13,1,5,8,12,6,9,3,2,15,13,8,10,1,3,15,4,2,11,6,7,12,0,5,14,9},
++ {10,0,9,14,6,3,15,5,1,13,12,7,11,4,2,8,13,7,0,9,3,4,6,10,2,8,5,14,12,11,15,1,
++  13,6,4,9,8,15,3,0,11,1,2,12,5,10,14,7,1,10,13,0,6,9,8,7,4,15,14,3,11,5,2,12},
++ {7,13,14,3,0,6,9,10,1,2,8,5,11,12,4,15,13,8,11,5,6,15,0,3,4,7,2,12,1,10,14,9,
++  10,6,9,0,12,11,7,13,15,1,3,14,5,2,8,4,3,15,0,6,10,1,13,8,9,4,5,11,12,7,2,14},
++ {2,12,4,1,7,10,11,6,8,5,3,15,13,0,14,9,14,11,2,12,4,7,13,1,5,0,15,10,3,9,8,6,
++  4,2,1,11,10,13,7,8,15,9,12,5,6,3,0,14,11,8,12,7,1,14,2,13,6,15,0,9,10,4,5,3},
++ {12,1,10,15,9,2,6,8,0,13,3,4,14,7,5,11,10,15,4,2,7,12,9,5,6,1,13,14,0,11,3,8,
++  9,14,15,5,2,8,12,3,7,0,4,10,1,13,11,6,4,3,2,12,9,5,15,10,11,14,1,7,6,0,8,13},
++ {4,11,2,14,15,0,8,13,3,12,9,7,5,10,6,1,13,0,11,7,4,9,1,10,14,3,5,12,2,15,8,6,
++  1,4,11,13,12,3,7,14,10,15,6,8,0,5,9,2,6,11,13,8,1,4,10,7,9,5,0,15,14,2,3,12},
++ {13,2,8,4,6,15,11,1,10,9,3,14,5,0,12,7,1,15,13,8,10,3,7,4,12,5,6,11,0,14,9,2,
++  7,11,4,1,9,12,14,2,0,6,10,13,15,3,5,8,2,1,14,7,4,10,8,13,15,12,9,0,3,5,6,11} };
++
++static unsigned long long des_permute(unsigned long long in, int in_bits,
++                                      const unsigned char *table, int out_bits)
++{
++    unsigned long long out = 0;
++    int i;
++    for (i = 0; i < out_bits; i++)
++        out = (out << 1) | ((in >> (in_bits - table[i])) & 1);
++    return out;
++}
++
++static void des_subkeys(const UCHAR *key, unsigned long long sub[16])
++{
++    unsigned long long k = 0, cd;
++    ULONG c, d;
++    int i;
++    for (i = 0; i < 8; i++) k = (k << 8) | key[i];
++    cd = des_permute(k, 64, DES_PC1, 56);
++    c = (ULONG)(cd >> 28) & 0x0FFFFFFF;
++    d = (ULONG)cd & 0x0FFFFFFF;
++    for (i = 0; i < 16; i++) {
++        int s = DES_SHIFTS[i];
++        c = ((c << s) | (c >> (28 - s))) & 0x0FFFFFFF;
++        d = ((d << s) | (d >> (28 - s))) & 0x0FFFFFFF;
++        sub[i] = des_permute(((unsigned long long)c << 28) | d, 56, DES_PC2, 48);
++    }
++}
++
++static void des_block(const UCHAR *key, UCHAR *out, const UCHAR *in, int encrypt)
++{
++    unsigned long long sub[16], b = 0, x;
++    ULONG l, r;
++    int i, j;
++
++    des_subkeys(key, sub);
++    for (i = 0; i < 8; i++) b = (b << 8) | in[i];
++    b = des_permute(b, 64, DES_IP, 64);
++    l = (ULONG)(b >> 32); r = (ULONG)b;
++    for (i = 0; i < 16; i++) {
++        ULONG f = 0, t;
++        x = des_permute(r, 32, DES_E, 48) ^ sub[encrypt ? i : 15 - i];
++        for (j = 0; j < 8; j++) {
++            ULONG six = (ULONG)(x >> (42 - 6 * j)) & 0x3F;
++            ULONG row = ((six & 0x20) >> 4) | (six & 1), col = (six >> 1) & 0xF;
++            f = (f << 4) | DES_S[j][row * 16 + col];
++        }
++        f = (ULONG)des_permute(f, 32, DES_P, 32);
++        t = r; r = l ^ f; l = t;
++    }
++    b = des_permute(((unsigned long long)r << 32) | l, 64, DES_FP, 64);
++    for (i = 7; i >= 0; i--) { out[i] = (UCHAR)b; b >>= 8; }
++}
++
++/* One 8-byte block through DES or EDE triple DES; the table holds the key. */
++static void xc_block(ULONG cipher, UCHAR *out, const UCHAR *in, const UCHAR *keys, ULONG encrypt)
++{
++    if (cipher == 1) {
++        UCHAR t[8];
++        if (encrypt) {
++            des_block(keys, t, in, 1);
++            des_block(keys + 8, t, t, 0);
++            des_block(keys + 16, out, t, 1);
++        } else {
++            des_block(keys + 16, t, in, 0);
++            des_block(keys + 8, t, t, 1);
++            des_block(keys, out, t, 0);
++        }
++    } else {
++        des_block(keys, out, in, encrypt != 0);
++    }
++}
++
+ VOID __stdcall xbox_XcDESKeyParity(PUCHAR Key, ULONG KeyLength)
+ {
+-    (void)Key;
+-    (void)KeyLength;
++    ULONG i;
++    for (i = 0; i < KeyLength; i++) {
++        UCHAR b = Key[i] & 0xFE, p = b;
++        p ^= p >> 4; p ^= p >> 2; p ^= p >> 1;
++        Key[i] = b | (~p & 1);                       /* odd parity */
++    }
+ }
+ 
+ VOID __stdcall xbox_XcKeyTable(ULONG CipherSelect, PVOID KeyTable, const UCHAR* Key)
+ {
+-    (void)CipherSelect;
+-    (void)KeyTable;
+-    (void)Key;
++    memcpy(KeyTable, Key, CipherSelect == 1 ? 24 : 8);
+ }
+ 
+ VOID __stdcall xbox_XcBlockCrypt(ULONG CipherSelect, PVOID Output, PVOID Input, PVOID KeyTable, ULONG Operation)
+ {
+-    (void)CipherSelect;
+-    (void)Output;
+-    (void)Input;
+-    (void)KeyTable;
+-    (void)Operation;
++    xc_block(CipherSelect, (UCHAR *)Output, (const UCHAR *)Input,
++             (const UCHAR *)KeyTable, Operation);
+ }
+ 
+ VOID __stdcall xbox_XcBlockCryptCBC(
+     ULONG CipherSelect, ULONG OutputLength, PVOID Output, PVOID Input,
+     PVOID KeyTable, ULONG Operation, PVOID FeedbackVector)
+ {
+-    (void)CipherSelect;
+-    (void)OutputLength;
+-    (void)Output;
+-    (void)Input;
+-    (void)KeyTable;
+-    (void)Operation;
+-    (void)FeedbackVector;
++    UCHAR *out = (UCHAR *)Output, *fb = (UCHAR *)FeedbackVector;
++    const UCHAR *in = (const UCHAR *)Input;
++    ULONG off;
++    int k;
++
++    for (off = 0; off + 8 <= OutputLength; off += 8) {
++        UCHAR blk[8], save[8];
++        if (Operation) {
++            for (k = 0; k < 8; k++) blk[k] = in[off + k] ^ fb[k];
++            xc_block(CipherSelect, out + off, blk, (const UCHAR *)KeyTable, 1);
++            memcpy(fb, out + off, 8);
++        } else {
++            memcpy(save, in + off, 8);
++            xc_block(CipherSelect, blk, in + off, (const UCHAR *)KeyTable, 0);
++            for (k = 0; k < 8; k++) out[off + k] = blk[k] ^ fb[k];
++            memcpy(fb, save, 8);
++        }
++    }
+ }
+ 
+ VOID __stdcall xbox_XcCryptService(ULONG Operation, PVOID Param)
 diff --git a/src/kernel/kernel_file.c b/src/kernel/kernel_file.c
-index c131993..c0fe15c 100644
+index c131993..9738b36 100644
 --- a/src/kernel/kernel_file.c
 +++ b/src/kernel/kernel_file.c
 @@ -147,6 +147,35 @@ NTSTATUS __stdcall xbox_NtCreateFile(
@@ -954,7 +1307,22 @@ index c131993..c0fe15c 100644
      /* A partition device opened as a directory.
       *
       * The path layer maps \Device\Harddisk0\PartitionN to a PartitionN.img
-@@ -187,6 +216,24 @@ NTSTATUS __stdcall xbox_NtCreateFile(
+@@ -182,11 +211,38 @@ NTSTATUS __stdcall xbox_NtCreateFile(
+             flags_and_attrs |= FILE_FLAG_NO_BUFFERING;
+         if (FileAttributes & XBOX_FILE_ATTRIBUTE_READONLY)
+             flags_and_attrs |= FILE_ATTRIBUTE_READONLY;
++        /* A read-only open always lets other readers in. Titles open disc
++         * files with no sharing at all -- harmless on a console, whose disc
++         * nobody else can open -- but here it locks the file against every
++         * other process: a second copy of the game (System Link testing on one
++         * PC) failed to open its level bundle (Bins\dm1fil.bin) with a
++         * sharing violation, then read from the missing stream and hung. */
++        DWORD share = xbox_share_to_win32(ShareAccess);
++        if (!(DesiredAccess & 0x50010116u))   /* GENERIC_WRITE|GENERIC_ALL|DELETE|write/append data|write attributes */
++            share |= FILE_SHARE_READ;
+         h = CreateFileW(win_path, xbox_access_to_win32(DesiredAccess),
+-            xbox_share_to_win32(ShareAccess), NULL,
++            share, NULL,
              xbox_disposition_to_win32(CreateDisposition), flags_and_attrs, NULL);
      }
  
@@ -979,7 +1347,7 @@ index c131993..c0fe15c 100644
      if (h == INVALID_HANDLE_VALUE) {
          DWORD err = GetLastError();
          /* Kept for the caller's trace. An NTSTATUS says "it did not open";
-@@ -298,10 +345,13 @@ NTSTATUS __stdcall xbox_NtWriteFile(
+@@ -298,10 +354,13 @@ NTSTATUS __stdcall xbox_NtWriteFile(
      return STATUS_UNSUCCESSFUL;
  }
  
@@ -993,7 +1361,7 @@ index c131993..c0fe15c 100644
          CloseHandle(Handle);
          return STATUS_SUCCESS;
      }
-@@ -607,6 +657,30 @@ static DIR_CONTEXT* find_or_create_dir_context(HANDLE FileHandle, BOOL create)
+@@ -607,6 +666,30 @@ static DIR_CONTEXT* find_or_create_dir_context(HANDLE FileHandle, BOOL create)
      return NULL;
  }
  
@@ -1024,7 +1392,7 @@ index c131993..c0fe15c 100644
  NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
      HANDLE FileHandle, HANDLE Event, PIO_APC_ROUTINE ApcRoutine, PVOID ApcContext,
      PXBOX_IO_STATUS_BLOCK IoStatusBlock, PVOID FileInformation, ULONG Length,
-@@ -629,6 +703,9 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+@@ -629,6 +712,9 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
      if (!ctx)
          return STATUS_INSUFFICIENT_RESOURCES;
  
@@ -1034,7 +1402,7 @@ index c131993..c0fe15c 100644
      if (RestartScan || !ctx->first_done) {
          if (ctx->find_handle && ctx->find_handle != INVALID_HANDLE_VALUE) {
              FindClose(ctx->find_handle);
-@@ -645,7 +722,12 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+@@ -645,7 +731,12 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
          WCHAR* clean_path = dir_path;
          if (wcsncmp(clean_path, L"\\\\?\\", 4) == 0)
              clean_path += 4;
@@ -1048,7 +1416,7 @@ index c131993..c0fe15c 100644
              WCHAR pattern_wide[MAX_PATH];
              MultiByteToWideChar(CP_ACP, 0, FileName->Buffer, FileName->Length,
                                  pattern_wide, MAX_PATH);
-@@ -671,9 +753,14 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+@@ -671,9 +762,14 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
          }
      }
  
@@ -1066,7 +1434,7 @@ index c131993..c0fe15c 100644
          if (!FindNextFileW(ctx->find_handle, &ctx->find_data)) {
              FindClose(ctx->find_handle);
              ctx->find_handle = NULL;
-@@ -1152,7 +1239,8 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
+@@ -1152,7 +1248,8 @@ NTSTATUS __stdcall xbox_NtQueryDirectoryFile(
          ctx->dir = NULL;
      }
  
@@ -1077,10 +1445,94 @@ index c131993..c0fe15c 100644
          const char* dpath = w32_handle_path(FileHandle);
          if (!dpath) { LeaveCriticalSection(&s_dir_cs); return STATUS_UNSUCCESSFUL; }
 diff --git a/src/kernel/kernel_hal.c b/src/kernel/kernel_hal.c
-index 842f99c..1d91596 100644
+index 842f99c..1973408 100644
 --- a/src/kernel/kernel_hal.c
 +++ b/src/kernel/kernel_hal.c
-@@ -97,9 +97,16 @@ static void xbox_update_tick_count(void)
+@@ -31,6 +31,56 @@
+ 
+ static XBOX_THREAD_LOCAL KIRQL g_current_irql = PASSIVE_LEVEL;
+ 
++/*
++ * DISPATCH_LEVEL excludes DPCs.
++ *
++ * The Xbox has one CPU, so a thread that raises to DISPATCH_LEVEL knows no DPC
++ * can run until it lowers again, and drivers rely on exactly that instead of
++ * locks. XNet's packet pools and connection tables are guarded this way: its
++ * API raises, edits, lowers; its receive DPC edits the same structures. Here
++ * DPCs run on the kernel timer thread, alongside the game thread, so the
++ * guarantee has to be made real: one recursive lock, held by whichever thread
++ * is at DISPATCH_LEVEL or above, and taken around every DPC. Without it a
++ * System Link joiner's receive DPC tore through XNet state while the game
++ * thread was inside XNet, and the joiner froze partway into loading the map.
++ */
++static CRITICAL_SECTION g_dispatch_lock;
++static INIT_ONCE g_dispatch_once = INIT_ONCE_STATIC_INIT;
++
++static BOOL CALLBACK dispatch_lock_init(PINIT_ONCE once, PVOID p, PVOID *c)
++{
++    (void)once; (void)p; (void)c;
++    InitializeCriticalSection(&g_dispatch_lock);
++    return TRUE;
++}
++
++static void irql_set(KIRQL new_irql)
++{
++    KIRQL old = g_current_irql;
++    InitOnceExecuteOnce(&g_dispatch_once, dispatch_lock_init, NULL, NULL);
++    if (old < DISPATCH_LEVEL && new_irql >= DISPATCH_LEVEL)
++        EnterCriticalSection(&g_dispatch_lock);
++    g_current_irql = new_irql;
++    if (old >= DISPATCH_LEVEL && new_irql < DISPATCH_LEVEL)
++        LeaveCriticalSection(&g_dispatch_lock);
++}
++
++/* Run a DPC (or an ISR) as the hardware would: at DISPATCH_LEVEL, never
++ * alongside a thread that has raised. Returns the level to restore. */
++KIRQL xbox_EnterDispatchLevel(void)
++{
++    KIRQL old = g_current_irql;
++    if (old < DISPATCH_LEVEL)
++        irql_set(DISPATCH_LEVEL);
++    return old;
++}
++
++void xbox_LeaveDispatchLevel(KIRQL old)
++{
++    if (old < DISPATCH_LEVEL)
++        irql_set(old);
++}
++
+ /*
+  * KfRaiseIrql - Raises IRQL to the specified level.
+  * Returns the previous IRQL. Uses __fastcall (ECX = NewIrql).
+@@ -45,7 +95,7 @@ KIRQL __fastcall xbox_KfRaiseIrql(KIRQL NewIrql)
+             old, NewIrql);
+     }
+ 
+-    g_current_irql = NewIrql;
++    irql_set(NewIrql);
+     return old;
+ }
+ 
+@@ -61,7 +111,7 @@ VOID __fastcall xbox_KfLowerIrql(KIRQL NewIrql)
+             g_current_irql, NewIrql);
+     }
+ 
+-    g_current_irql = NewIrql;
++    irql_set(NewIrql);
+ }
+ 
+ /*
+@@ -70,7 +120,7 @@ VOID __fastcall xbox_KfLowerIrql(KIRQL NewIrql)
+ KIRQL __stdcall xbox_KeRaiseIrqlToDpcLevel(void)
+ {
+     KIRQL old = g_current_irql;
+-    g_current_irql = DISPATCH_LEVEL;
++    irql_set(DISPATCH_LEVEL);
+     return old;
+ }
+ 
+@@ -97,9 +147,16 @@ static void xbox_update_tick_count(void)
   * Both Xbox and Windows return LARGE_INTEGER.
   * ============================================================================ */
  
@@ -1097,7 +1549,7 @@ index 842f99c..1d91596 100644
      QueryPerformanceCounter(&counter);
      return counter;
  }
-@@ -107,6 +114,7 @@ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceCounter(void)
+@@ -107,6 +164,7 @@ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceCounter(void)
  LARGE_INTEGER __stdcall xbox_KeQueryPerformanceFrequency(void)
  {
      LARGE_INTEGER freq;
@@ -1105,7 +1557,7 @@ index 842f99c..1d91596 100644
      QueryPerformanceFrequency(&freq);
      return freq;
  }
-@@ -120,6 +128,12 @@ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceFrequency(void)
+@@ -120,6 +178,12 @@ LARGE_INTEGER __stdcall xbox_KeQueryPerformanceFrequency(void)
  
  VOID __stdcall xbox_KeQuerySystemTime(PLARGE_INTEGER CurrentTime)
  {
@@ -1118,7 +1570,7 @@ index 842f99c..1d91596 100644
      if (CurrentTime)
          GetSystemTimeAsFileTime((LPFILETIME)CurrentTime);
  }
-@@ -419,6 +433,7 @@ NTSTATUS __stdcall xbox_NtSetSystemTime(PLARGE_INTEGER SystemTime, PLARGE_INTEGE
+@@ -419,6 +483,7 @@ NTSTATUS __stdcall xbox_NtSetSystemTime(PLARGE_INTEGER SystemTime, PLARGE_INTEGE
  
  static ULONG g_av_saved_data_address = 0;
  static ULONG g_av_display_mode = 0;
@@ -1126,7 +1578,7 @@ index 842f99c..1d91596 100644
  
  ULONG __stdcall xbox_AvGetSavedDataAddress(void)
  {
-@@ -485,6 +500,15 @@ VOID __stdcall xbox_AvSendTVEncoderOption(
+@@ -485,6 +550,15 @@ VOID __stdcall xbox_AvSendTVEncoderOption(
          *Result = 0;
          break;
  
@@ -1142,7 +1594,7 @@ index 842f99c..1d91596 100644
      case AV_OPTION_BLANK_SCREEN:
      case AV_OPTION_MACROVISION_MODE:
      case AV_OPTION_FLICKER_FILTER:
-@@ -752,12 +776,65 @@ ULONGLONG __stdcall xbox_KeQueryInterruptTime(void)
+@@ -752,12 +826,65 @@ ULONGLONG __stdcall xbox_KeQueryInterruptTime(void)
   * ========================================================================= */
  #define XBOX_TSC_HZ 733333333ull
  
@@ -1433,10 +1885,108 @@ index 0b2d723..c3c80e7 100644
      }
      return budget > 0 ? budget-- : 0;
 diff --git a/src/kernel/xbox_memory_layout.c b/src/kernel/xbox_memory_layout.c
-index 0e17178..3b9234f 100644
+index 0e17178..88b8b66 100644
 --- a/src/kernel/xbox_memory_layout.c
 +++ b/src/kernel/xbox_memory_layout.c
-@@ -757,6 +757,7 @@ static uint32_t g_tls_template_va, g_tls_total, g_tls_thread_size = 64;
+@@ -572,35 +572,55 @@ static void framebuffer_probe_tick(void)
+     fflush(stderr);
+ }
+ 
+-static DWORD WINAPI nv2a_ack_thread(LPVOID param)
++/* One pass of the GPU stand-in: busy bits acknowledged, idle bits held,
++ * the pushbuffer consumed (GET = PUT), fences and counters mirrored. The ack
++ * thread runs it once a millisecond; a title-side override that submits work
++ * can run it at once (xbox_Nv2aAckNow) so the title never waits on the thread. */
++static void nv2a_ack_once(volatile uint32_t *regs)
+ {
+-    volatile uint32_t *regs = (volatile uint32_t *)param;
+-    while (!InterlockedCompareExchange(&g_nv2a_ack_stop, 0, 0)) {
+-        for (size_t i = 0; i < sizeof(NV2A_ACK) / sizeof(NV2A_ACK[0]); i++) {
+-            volatile uint32_t *r =
+-                (volatile uint32_t *)((char *)regs + NV2A_ACK[i].offset);
+-            if (*r & NV2A_ACK[i].busy_mask) {
+-                *r &= ~NV2A_ACK[i].busy_mask;
+-            }
++    for (size_t i = 0; i < sizeof(NV2A_ACK) / sizeof(NV2A_ACK[0]); i++) {
++        volatile uint32_t *r =
++            (volatile uint32_t *)((char *)regs + NV2A_ACK[i].offset);
++        if (*r & NV2A_ACK[i].busy_mask) {
++            *r &= ~NV2A_ACK[i].busy_mask;
+         }
+-        for (size_t i = 0; i < sizeof(NV2A_IDLE) / sizeof(NV2A_IDLE[0]); i++) {
+-            volatile uint32_t *r =
+-                (volatile uint32_t *)((char *)regs + NV2A_IDLE[i].offset);
+-            if ((*r & NV2A_IDLE[i].idle_mask) != NV2A_IDLE[i].idle_mask) {
+-                *r |= NV2A_IDLE[i].idle_mask;
+-            }
++    }
++    for (size_t i = 0; i < sizeof(NV2A_IDLE) / sizeof(NV2A_IDLE[0]); i++) {
++        volatile uint32_t *r =
++            (volatile uint32_t *)((char *)regs + NV2A_IDLE[i].offset);
++        if ((*r & NV2A_IDLE[i].idle_mask) != NV2A_IDLE[i].idle_mask) {
++            *r |= NV2A_IDLE[i].idle_mask;
+         }
+-        {
+-            volatile uint32_t *put =
+-                (volatile uint32_t *)((char *)regs + NV2A_USER_DMA_PUT);
+-            volatile uint32_t *get =
+-                (volatile uint32_t *)((char *)regs + NV2A_USER_DMA_GET);
+-            if (*get != *put) {
+-                *get = *put;
+-            }
++    }
++    {
++        volatile uint32_t *put =
++            (volatile uint32_t *)((char *)regs + NV2A_USER_DMA_PUT);
++        volatile uint32_t *get =
++            (volatile uint32_t *)((char *)regs + NV2A_USER_DMA_GET);
++        if (*get != *put) {
++            *get = *put;
+         }
+-        fence_mirrors_tick();
+-        counter_mirrors_tick();
++    }
++    fence_mirrors_tick();
++    counter_mirrors_tick();
++}
++
++static volatile LONG g_nv2a_ack_lock;
++void xbox_Nv2aAckNow(void)
++{
++    if (!g_nv2a_memory) return;
++    while (InterlockedExchange(&g_nv2a_ack_lock, 1)) YieldProcessor();
++    nv2a_ack_once((volatile uint32_t *)g_nv2a_memory);
++    InterlockedExchange(&g_nv2a_ack_lock, 0);
++}
++
++static DWORD WINAPI nv2a_ack_thread(LPVOID param)
++{
++    volatile uint32_t *regs = (volatile uint32_t *)param;
++    while (!InterlockedCompareExchange(&g_nv2a_ack_stop, 0, 0)) {
++        while (InterlockedExchange(&g_nv2a_ack_lock, 1)) YieldProcessor();
++        nv2a_ack_once(regs);
++        InterlockedExchange(&g_nv2a_ack_lock, 0);
+         frame_counters_tick();
+         framebuffer_probe_tick();
+ 
+@@ -703,7 +723,15 @@ static DWORD WINAPI nv2a_ack_thread(LPVOID param)
+         *(volatile uint32_t *)((uintptr_t)(XBOX_KERNEL_DATA_BASE + KDATA_TICK_COUNT)
+                                + g_memory_offset) = GetTickCount();
+ 
+-        Sleep(0);  /* yield; the waiter is spinning on another core */
++        /* Once a millisecond. Sleep(0) here kept a whole core busy for the
++         * life of the process -- on a dual-core PC, half the machine -- and
++         * the title's own waits poll at frame or vblank rates, far slower.
++         * RECOMP_ACK_SPIN=1 restores the busy loop. */
++        {
++            static int spin = -1;
++            if (spin < 0) { const char *e = getenv("RECOMP_ACK_SPIN"); spin = e && *e == '1'; }
++            Sleep(spin ? 0 : 1);
++        }
+     }
+     return 0;
+ }
+@@ -757,6 +785,7 @@ static uint32_t g_tls_template_va, g_tls_total, g_tls_thread_size = 64;
  
  RECOMP_TLS uint32_t g_eax = 0, g_ecx = 0, g_edx = 0, g_esp = 0;
  RECOMP_TLS uint32_t g_ebx = 0, g_esi = 0, g_edi = 0;
@@ -1444,7 +1994,7 @@ index 0e17178..3b9234f 100644
  
  #ifdef RECOMP_ABI_CHECK
  /* Report a lifted function that returned without restoring ebx/esi/edi.
-@@ -892,6 +893,117 @@ int recomp_guest_longjmp(uint32_t buf_va, uint32_t value)
+@@ -892,6 +921,117 @@ int recomp_guest_longjmp(uint32_t buf_va, uint32_t value)
      return 0;
  }
  
@@ -1562,7 +2112,7 @@ index 0e17178..3b9234f 100644
  /* Watchdog: dump the guest call stack if the title stops making progress.
   *
   * A hang gives nothing to work from -- no crash, no last log line, no native
-@@ -1091,6 +1203,17 @@ BOOL xbox_MemoryLayoutInit(const void *xbe_data, size_t xbe_size)
+@@ -1091,6 +1231,17 @@ BOOL xbox_MemoryLayoutInit(const void *xbe_data, size_t xbe_size)
       */
      {
          static const uintptr_t try_bases[] = {
@@ -1580,7 +2130,7 @@ index 0e17178..3b9234f 100644
              XBOX_BASE_ADDRESS,      /* 0x00010000 - original Xbox address */
              0x00800000,             /* 8 MB - above typical PEB/TEB region */
              0x01000000,             /* 16 MB */
-@@ -1763,7 +1886,15 @@ BOOL xbox_MemoryLayoutInit(const void *xbe_data, size_t xbe_size)
+@@ -1763,7 +1914,15 @@ BOOL xbox_MemoryLayoutInit(const void *xbe_data, size_t xbe_size)
          uint64_t tiled_lo = XBOX_TILED_BASE;
          uint64_t tiled_hi = tiled_lo + xbox_TiledApertureSize();
  
@@ -1597,7 +2147,7 @@ index 0e17178..3b9234f 100644
              uintptr_t mirror_base = (uintptr_t)g_memory_base +
                                      (uintptr_t)(m + 1) * g_memory_size;
              uint64_t guest_lo = (uint64_t)(m + 1) * g_memory_size;
-@@ -2142,48 +2273,144 @@ void xbox_FreeThreadStack(uint32_t stack_top)
+@@ -2142,48 +2301,144 @@ void xbox_FreeThreadStack(uint32_t stack_top)
          g_thread_stacks_used--;
  }
  
@@ -1616,18 +2166,18 @@ index 0e17178..3b9234f 100644
 + * nothing in the general heap.
 + *
 + * XBOX_GPU_INSTANCE_DEFAULT is carved off the top by the GPU-instance bridge.
-+ *
+  *
+- * Grows up from the base; XBOX_GPU_INSTANCE_DEFAULT is carved off the top by
+- * the GPU-instance bridge, so the two do not meet until the window is full.
+- * Never freed: contiguous blocks are framebuffers and pushbuffers, which a
+- * title allocates once. */
 + * This used to be a bump allocator on the theory that contiguous blocks are
 + * framebuffers and pushbuffers, allocated once. They are not: XPhysicalAlloc
 + * is contiguous, and D3D textures, surfaces and vertex buffers come from it.
 + * Clone Wars allocates and frees level and menu textures all game long, and
 + * with frees going nowhere the window filled after ~40 minutes; surface
 + * creation then failed ("Error creating surface") and the title stalled.
-  *
-- * Grows up from the base; XBOX_GPU_INSTANCE_DEFAULT is carved off the top by
-- * the GPU-instance bridge, so the two do not meet until the window is full.
-- * Never freed: contiguous blocks are framebuffers and pushbuffers, which a
-- * title allocates once. */
++ *
 + * Blocks are kept in an address-sorted table; allocation is first fit over
 + * the gaps, free removes the entry. g_contig_next is the high-water mark
 + * (xbox_ContiguousAllocatedBytes: "is this physical address in the window").
@@ -1763,6 +2313,66 @@ index 0e17178..3b9234f 100644
   *
   * Lets a caller holding a physical address decide whether it names contiguous
   * memory this runtime allocated. The pushbuffer executor needs exactly that:
+@@ -2194,7 +2449,32 @@ uint32_t xbox_ContiguousAllocatedBytes(void)
+ }
+ 
+ 
++/* The heap is shared by every guest thread -- the title's own, and the kernel
++ * timer thread running DPCs (XNet allocates packet memory from its receive
++ * DPC) -- so the block table is locked like the contiguous arena above.
++ * Without it two allocations could be handed the same block: in System Link
++ * matches packet data landed in texture memory as green and purple noise. */
++static SRWLOCK g_heap_lock = SRWLOCK_INIT;
++static uint32_t heap_alloc_unlocked(uint32_t size, uint32_t alignment);
++static void heap_free_unlocked(uint32_t xbox_va);
++
+ uint32_t xbox_HeapAlloc(uint32_t size, uint32_t alignment)
++{
++    uint32_t r;
++    AcquireSRWLockExclusive(&g_heap_lock);
++    r = heap_alloc_unlocked(size, alignment);
++    ReleaseSRWLockExclusive(&g_heap_lock);
++    return r;
++}
++
++void xbox_HeapFree(uint32_t xbox_va)
++{
++    AcquireSRWLockExclusive(&g_heap_lock);
++    heap_free_unlocked(xbox_va);
++    ReleaseSRWLockExclusive(&g_heap_lock);
++}
++
++static uint32_t heap_alloc_unlocked(uint32_t size, uint32_t alignment)
+ {
+     uint32_t result;
+ 
+@@ -2303,7 +2583,17 @@ uint32_t xbox_HeapAlloc(uint32_t size, uint32_t alignment)
+  * forward is asking about the block that contains it. Returns 0 for an address
+  * this heap never handed out, which is what "not one of mine" has to look like.
+  */
++static uint32_t heap_block_size_unlocked(uint32_t xbox_va);
+ uint32_t xbox_HeapBlockSize(uint32_t xbox_va)
++{
++    uint32_t r;
++    AcquireSRWLockShared(&g_heap_lock);
++    r = heap_block_size_unlocked(xbox_va);
++    ReleaseSRWLockShared(&g_heap_lock);
++    return r;
++}
++
++static uint32_t heap_block_size_unlocked(uint32_t xbox_va)
+ {
+     int i;
+ 
+@@ -2319,7 +2609,7 @@ uint32_t xbox_HeapBlockSize(uint32_t xbox_va)
+     return 0;
+ }
+ 
+-void xbox_HeapFree(uint32_t xbox_va)
++static void heap_free_unlocked(uint32_t xbox_va)
+ {
+     static int frees = 0, matched = 0;
+ 
 diff --git a/src/kernel/xbox_memory_layout.h b/src/kernel/xbox_memory_layout.h
 index 2552e5f..0596e95 100644
 --- a/src/kernel/xbox_memory_layout.h
@@ -1911,7 +2521,7 @@ index 75030f7..0d11d86 100644
   * Masked invalid conversions store the signed integer-indefinite value. */
  static inline int64_t recomp_fist(double value, uint16_t control, unsigned bits) {
 diff --git a/tools/recomp/lifter.py b/tools/recomp/lifter.py
-index d788d9f..d57d2fe 100644
+index d788d9f..f3c6a6d 100644
 --- a/tools/recomp/lifter.py
 +++ b/tools/recomp/lifter.py
 @@ -432,11 +432,128 @@ _EFLAGS_PRESERVE = frozenset({
@@ -2313,6 +2923,31 @@ index d788d9f..d57d2fe 100644
          # Handle jecxz/jcxz specially (not flag-based)
          if curr.mnemonic in ("jecxz", "jcxz"):
              results = lifter._lift_jcc(curr)
+@@ -3376,15 +3680,17 @@ def lift_basic_block(lifter, bb, flag_state=None):
+         elif curr.mnemonic.startswith("set"):
+             pass  # SETcc doesn't set flags
+         elif curr.mnemonic.startswith("rep"):
+-            # rep movsb/movsd = data copy, preserves flags
+-            # repe cmpsb/repne scasb = comparison, sets flags
++            # rep movs/stos = data copy, preserves flags
++            # repe/repne cmps/scas (byte, word and dword) = comparison, sets
++            # flags. Only the byte forms used to count, so after a
++            # `repe cmpsw` the jcc took its flags from whatever came before --
++            # usually an `xor reg, reg`, which made every comparison read as
++            # "equal". XNet's "is this address my own?" check is one of them:
++            # every System Link join resolved the host to loopback.
+             rest = curr.op_str.strip() if hasattr(curr, 'op_str') else ""
+             raw_m = curr.mnemonic
+-            if "cmpsb" in raw_m or "scasb" in raw_m:
+-                last_flag_setter = raw_m
+-                last_flag_ops = list(curr.operands)
+-            elif "cmpsb" in rest or "scasb" in rest:
+-                last_flag_setter = raw_m
++            if any(k in raw_m or k in rest for k in ("cmps", "scas")):
++                last_flag_setter = raw_m if ("cmps" in raw_m or "scas" in raw_m)                     else (raw_m + " " + rest).strip()
+                 last_flag_ops = list(curr.operands)
+             else:
+                 pass  # rep movs/stos = data movement, flags preserved
 diff --git a/tools/recomp/test_flag_join.py b/tools/recomp/test_flag_join.py
 index 74a9e84..646e11b 100644
 --- a/tools/recomp/test_flag_join.py
@@ -2333,6 +2968,42 @@ index 74a9e84..646e11b 100644
 +    code = FunctionTranslator(image, db).translate_function(BASE, db[BASE])
 +    assert '(eax == 0)' in code, code
 +    assert '_flags /* je' not in code, code
+diff --git a/tools/recomp/test_lifter_string_compare.py b/tools/recomp/test_lifter_string_compare.py
+index d4bf5a3..4585408 100644
+--- a/tools/recomp/test_lifter_string_compare.py
++++ b/tools/recomp/test_lifter_string_compare.py
+@@ -80,3 +80,31 @@ class StringCompareLifterTest(unittest.TestCase):
+ 
+ if __name__ == "__main__":
+     unittest.main()
++
++
++class WideCompareAfterXorTest(unittest.TestCase):
++    def test_word_compare_overrides_an_earlier_xor(self):
++        # XNet's XNetXnAddrToInAddr: `xor edx, edx; repe cmpsw; jne`. The
++        # jne has to read the compare, not the zero the xor left in edx --
++        # reading edx made every address compare equal to this machine's.
++        clear = Instruction(0, 2, "xor", "edx, edx", "33d2")
++        clear.operands = [Operand(type="reg", reg="edx"),
++                          Operand(type="reg", reg="edx")]
++        compare = Instruction(
++            2, 3, "repe cmpsw", "word ptr [esi], word ptr es:[edi]",
++            "f366a7")
++        compare.operands = [
++            Operand(type="mem", mem_base="esi", mem_size=2),
++            Operand(type="mem", mem_base="edi", mem_size=2),
++        ]
++        jump = Instruction(5, 2, "jne", "0x10", "7509")
++        jump.jump_target = 0x10
++        lifter = Lifter()
++        lifter.func_start = 0
++        lifter.func_end = 0x20
++
++        lifted, _ = lift_basic_block(
++            lifter, BasicBlock(start=0, instructions=[clear, compare, jump]))
++        jcc = "\n".join(lifted).splitlines()[-1]
++        self.assertIn("_flags", jcc)
++        self.assertNotIn("edx", jcc)
 diff --git a/tools/recomp/translator.py b/tools/recomp/translator.py
 index 48dda04..37a05ad 100644
 --- a/tools/recomp/translator.py

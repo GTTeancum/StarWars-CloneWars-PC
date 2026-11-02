@@ -502,7 +502,7 @@ static int psh_translate(psh_out *o)
             pop(o, D3DSIO_MOV, r0a, s, 1);
         }
     }
-    if (getenv("CW_PSH_ALPHA1")) {
+    if (env_cached("CW_PSH_ALPHA1")) {
         /* experiment: force output alpha to 1 (1 - zero constant) */
         DWORD s1 = psh_src(o, 0x20, 1, 1);
         pop(o, D3DSIO_MOV, 0x80000000u | (PS_TEMP << 28) | (0x8u << 16), &s1, 1);
@@ -590,7 +590,7 @@ static int psh_bind(void)
             s_psh_split = 0;
         }
         if (!o->bad) {
-            if (getenv("CW_PSH_LOG")) {
+            if (env_cached("CW_PSH_LOG")) {
                 int k;
                 fprintf(stderr, "[PSH]     tokens:");
                 for (k = 0; k < o->n; k++) fprintf(stderr, " %08lX", (unsigned long)o->tok[k]);
@@ -605,7 +605,7 @@ static int psh_bind(void)
                 snprintf(o->why, sizeof o->why, "CreatePixelShader hr=0x%08lX", (unsigned long)hr);
             }
         }
-        if (!r->ok || getenv("CW_PSH_LOG")) {
+        if (!r->ok || env_cached("CW_PSH_LOG")) {
             int k;
             fprintf(stderr, "[PSH] shader %d: %s (%d arith) %s | count=%X modes=%X fin=%08X/%08X xbox=%08X tex0=%08X\n",
                     s_npsh, r->ok ? "ok" : "FAILED", o->arith, o->why, XRS(53), XRS(136), XRS(8), XRS(9),

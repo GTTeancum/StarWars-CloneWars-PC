@@ -1153,3 +1153,47 @@ void sub_0026B129(void)
     if (e != 0x7FF00000u) mc_from_cmp(e, 0x7FF00000u);
     else mc_from_cmp(0, 0);                 /* "test eax, 0": ZF set, SF/CF/OF clear, PF set */
 }
+
+/* 0x002D5310 -- D3D's push-buffer kick-off (thiscall, the device in ecx).
+ *
+ * It sets the PFB flush bit (NV2A 0x100410 bit 16) and spins until the GPU
+ * clears it, then writes the new DMA PUT. Here the GPU is the toolkit's
+ * NV2A ack thread, which clears the bit when it next comes round; the push
+ * buffer itself is never executed (src/platform/d3d8.c draws through the
+ * PC's Direct3D 8). That spin is many times a frame: the ack thread had to
+ * run flat out on a core of its own to keep the game moving, and slowing it
+ * to once a millisecond took 4-player split screen to 4 fps. The flush is
+ * acknowledged here at once instead, and the submitted work marked done
+ * (xbox_Nv2aAckNow), so the ack thread can idle. Otherwise the same as the
+ * original. */
+void sub_002D5310_gen(void);
+void sub_002D5310(void)
+{
+    uint32_t dev = g_ecx, flags = MEM32(dev + 8), put, regs;
+    put = (flags & 4) ? MEM32(dev + 0x358) : MEM32(dev);
+    if (flags & 0x2000) {                    /* the other path never waits */
+        sub_002D5310_gen();
+        return;
+    }
+    regs = MEM32(MEM32(0x002E44E8u) + 0x17C8);
+    MEM32(regs + 0x100410) &= ~0x10000u;     /* flush requested and done */
+    MEM32(MEM32(dev + 0x17C0) + 0x40) = put & 0x0FFFFFFFu;
+    {
+        /* ...and the work consumed at once (GET = PUT, fences mirrored):
+         * with the ack thread at a millisecond, the title otherwise ran out
+         * of pushbuffer and slept on an event nothing signals. */
+        extern void xbox_Nv2aAckNow(void);
+        xbox_Nv2aAckNow();
+    }
+    if (MEM32(0x002E4040u)) {
+        uint32_t esi = g_esi, edi = g_edi, ebx = g_ebx, ebp = g_ebp;
+        do {
+            PUSH32(g_esp, 0x002D537Du);
+            sub_002D7220();
+        } while (g_eax);
+        g_esi = esi; g_edi = edi; g_ebx = ebx; g_ebp = ebp;
+        MEM32(dev + 8) |= 0x2000;
+    }
+    g_ecx = dev;
+    g_esp += 4;                              /* ret */
+}

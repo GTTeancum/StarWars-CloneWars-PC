@@ -36,6 +36,61 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <d3d8.h>
+
+/* Redundant-state filter. apply_state() re-sends the whole fixed-function
+ * state before every draw, and with D3DCREATE_MULTITHREADED each call takes
+ * the runtime's lock: in 4-player split screen that was a third of the game
+ * thread in d3d8.dll, the driver and ntdll. Render states, texture stage
+ * states and the bound texture per stage are remembered and a call that
+ * would not change anything is dropped. The cache is cleared wherever state
+ * changes behind its back (state blocks, device creation). */
+static DWORD    s_rs_val[256];
+static uint8_t  s_rs_ok[256];
+static DWORD    s_tss_val[8][32];
+static uint8_t  s_tss_ok[8][32];
+static IDirect3DBaseTexture8 *s_tex_bound[8];
+static uint8_t  s_tex_ok[8];
+
+static void state_cache_clear(void)
+{
+    memset(s_rs_ok, 0, sizeof s_rs_ok);
+    memset(s_tss_ok, 0, sizeof s_tss_ok);
+    memset(s_tex_ok, 0, sizeof s_tex_ok);
+}
+
+static HRESULT cw_set_rs(IDirect3DDevice8 *d, D3DRENDERSTATETYPE st, DWORD v)
+{
+    if ((unsigned)st < 256) {
+        if (s_rs_ok[st] && s_rs_val[st] == v) return D3D_OK;
+        s_rs_ok[st] = 1; s_rs_val[st] = v;
+    }
+    return d->lpVtbl->SetRenderState(d, st, v);
+}
+
+static HRESULT cw_set_tss(IDirect3DDevice8 *d, DWORD stage, D3DTEXTURESTAGESTATETYPE ty, DWORD v)
+{
+    if (stage < 8 && (unsigned)ty < 32) {
+        if (s_tss_ok[stage][ty] && s_tss_val[stage][ty] == v) return D3D_OK;
+        s_tss_ok[stage][ty] = 1; s_tss_val[stage][ty] = v;
+    }
+    return d->lpVtbl->SetTextureStageState(d, stage, ty, v);
+}
+
+static HRESULT cw_set_tex(IDirect3DDevice8 *d, DWORD stage, IDirect3DBaseTexture8 *t)
+{
+    if (stage < 8) {
+        if (s_tex_ok[stage] && s_tex_bound[stage] == t) return D3D_OK;
+        s_tex_ok[stage] = 1; s_tex_bound[stage] = t;
+    }
+    return d->lpVtbl->SetTexture(d, stage, t);
+}
+
+#undef IDirect3DDevice8_SetRenderState
+#undef IDirect3DDevice8_SetTextureStageState
+#undef IDirect3DDevice8_SetTexture
+#define IDirect3DDevice8_SetRenderState(d, s, v)        cw_set_rs(d, s, v)
+#define IDirect3DDevice8_SetTextureStageState(d, s, t, v) cw_set_tss(d, s, t, v)
+#define IDirect3DDevice8_SetTexture(d, s, t)            cw_set_tex(d, s, (IDirect3DBaseTexture8 *)(t))
 #include <mmsystem.h>
 #else
 #define HLE_D3D8_AVAILABLE 0
@@ -191,6 +246,22 @@ static void load_settings(void)
 
 int cw_headless_muted(void);   /* src/host/main.c */
 
+/* Debug switches read on hot paths -- per draw, per frame. getenv walks the
+ * whole environment each call, and per draw that was an eighth of the game
+ * thread in 4-player split screen; settings cannot change while the game
+ * runs, so each name is read once. Keyed by the literal's address. */
+static const char *env_cached(const char *name)
+{
+    static struct { const char *name, *value; } c[48];
+    static int n;
+    int i;
+    for (i = 0; i < n; i++) if (c[i].name == name) return c[i].value;
+    if (n == 48) return getenv(name);
+    c[n].name = name;
+    c[n].value = getenv(name);
+    return c[n++].value;
+}
+
 static void pump_messages(void)
 {
     MSG msg;
@@ -298,6 +369,7 @@ static int ensure_device(void)
         s_failed = 1;
         return 0;
     }
+    state_cache_clear();
     d3d_log("device created (%dx%d %s, widescreen %s, FXAA %s)", s_bbw, s_bbh,
             s_fullscreen ? "borderless fullscreen" : "windowed", s_k < 1.0f ? "on" : "off", s_fxaa ? "on" : "off");
     {
@@ -832,7 +904,7 @@ static IDirect3DTexture8 *get_texture(uint32_t res)
         {
             static uint32_t seen[16]; static int n; int k;
             for (k = 0; k < n; k++) if (seen[k] == res) break;
-            if (k == n && n < 16 && getenv("CW_RT_LOG")) {
+            if (k == n && n < 16 && env_cached("CW_RT_LOG")) {
                 seen[n++] = res;
                 {
                     /* dump as 8-bit grayscale PGM (high byte of each 16-bit texel) */
@@ -1139,9 +1211,9 @@ static void apply_state(void)
     IDirect3DDevice8 *d = s_dev;
     float f;
 
-    if (getenv("CW_PSH_LOG")) ps_dump_once();
+    if (env_cached("CW_PSH_LOG")) ps_dump_once();
     s_psh_pass2 = 0;
-    if (s_pshader && !getenv("CW_NO_PSH"))
+    if (s_pshader && !env_cached("CW_NO_PSH"))
         use_ps = psh_bind();
     if (!use_ps)
         IDirect3DDevice8_SetPixelShader(d, 0);
@@ -1156,7 +1228,7 @@ static void apply_state(void)
          * count came out wrong -- a solid dark wedge over the ground.
          * Xbox D3DRS_CULLMODE: 0 none, 0x900 CW, 0x901 CCW (PC 1, 2, 3). */
         DWORD cull = D3DCULL_NONE;
-        if (XRS(XRS_STENCILENABLE) && !getenv("CW_NO_STENCIL_CULL")) {
+        if (XRS(XRS_STENCILENABLE) && !env_cached("CW_NO_STENCIL_CULL")) {
             uint32_t c = XRS(XRS_CULLMODE);
             cull = c == 0x900 ? D3DCULL_CW : c == 0x901 ? D3DCULL_CCW : D3DCULL_NONE;
         }
@@ -1600,7 +1672,7 @@ static void vp_apply(void)
         v.X = 0; v.Y = 0; v.Width = (DWORD)s_bbw; v.Height = (DWORD)s_bbh;
         /* The game widens its own camera (sub_00227960 above); CW_WIDE_RENDER=1
          * does it here in clip space instead (no culling fix). */
-        k = getenv("CW_WIDE_RENDER") ? s_k : 1.0f;
+        k = env_cached("CW_WIDE_RENDER") ? s_k : 1.0f;
     } else {
         float x0 = s_hx0 + (float)g.X * s_hs, y0 = s_hy0 + (float)g.Y * s_hs;
         float x1 = s_hx0 + (float)(g.X + g.Width) * s_hs, y1 = s_hy0 + (float)(g.Y + g.Height) * s_hs;
@@ -1702,7 +1774,7 @@ static const uint8_t *rhw_map(const uint8_t *v, uint32_t lo, uint32_t hi, uint32
         /* Pieces reaching past the 640-wide screen are placed on 3D points
          * the widened view shows beside it (target brackets): never HUD. */
         if (ox > 0.0f && s_k < 1.0f && minx >= 0.0f && maxx <= 640.0f && !split_screen() &&
-            MEM32(0x005ED8B0u) == 0 && !getenv("CW_NO_HUD_ANCHOR")) {
+            MEM32(0x005ED8B0u) == 0 && !env_cached("CW_NO_HUD_ANCHOR")) {
             /* Judged by the piece's centre (the radar rotates; its bounding
              * box does not stay put). Large or tall pieces with their centre
              * in the outer quarters -- gauges, radar, the off-screen
@@ -1919,7 +1991,7 @@ static void m_copy_rects(const uint32_t *a)
  * hud_x_shift: the clip-x shift for a draw whose clip-x extent is x0..x1. */
 static float hud_x_shift(float x0, float x1)
 {
-    if (s_k >= 1.0f || getenv("CW_NO_HUD_ANCHOR")) return 0.0f;
+    if (s_k >= 1.0f || env_cached("CW_NO_HUD_ANCHOR")) return 0.0f;
     if (x1 < -0.25f * s_k) return -(1.0f - s_k);
     if (x0 > 0.25f * s_k) return 1.0f - s_k;
     return 0.0f;
@@ -2366,7 +2438,7 @@ static void m_swap(void)
             extern uint32_t xbox_ContiguousInUse(void);
             extern void xbox_ContiguousReport(void);
             static unsigned nrep;
-            if (getenv("CW_CONTIG_REPORT") && (++nrep % 36) == 0)   /* every 3 minutes */
+            if (env_cached("CW_CONTIG_REPORT") && (++nrep % 36) == 0)   /* every 3 minutes */
                 xbox_ContiguousReport();
             fprintf(stderr, "[FPS] %.1f  gpu-mem %u KB\n", (s_frames - n0) * 1000.0 / (t - t0),
                     xbox_ContiguousInUse() / 1024);
@@ -2986,6 +3058,7 @@ static void code_overlay(void)
     ovl_quad_draw(x0, y0, x0 + (float)w, y0 + (float)h);
     IDirect3DDevice8_EndScene(s_dev);
     IDirect3DDevice8_ApplyStateBlock(s_dev, s_code_sb);
+    state_cache_clear();
 }
 
 static void m_update_overlay(const uint32_t *a)
@@ -3174,7 +3247,7 @@ void sub_002D62E0(void)
 {
     uint32_t ret = MEM32(g_esp);
     D3D_WRAP_BODY(sub_002D62E0_gen, 2, MIRROR_TRANSFORM)
-    if (a[0] == 1 && a[1] && getenv("CW_PROJ_LOG")) {
+    if (a[0] == 1 && a[1] && env_cached("CW_PROJ_LOG")) {
         /* CW_PROJ_LOG=1: who sets the projection, and to what (first 8). */
         static int n;
         if (n++ < 8) {
@@ -3232,7 +3305,7 @@ void sub_002D45B0(void)
         static int n;
         int k;
         for (k = 0; k < n; k++) if (seen[k][0] == rt && seen[k][1] == z) break;
-        if (k == n && n < 32 && getenv("CW_RT_LOG")) {
+        if (k == n && n < 32 && env_cached("CW_RT_LOG")) {
             seen[n][0] = rt; seen[n][1] = z; n++;
             fprintf(stderr, "[RT] target %08X (fmt %X size %08X) depth %08X (fmt %X size %08X) frame %u\n",
                     rt, rt ? (MEM32(rt + 0xC) >> 8) & 0xFF : 0, rt ? MEM32(rt + 0x10) : 0,
